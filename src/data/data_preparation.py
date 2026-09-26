@@ -23,6 +23,7 @@ import glob
 import json
 import os
 
+
 import numpy as np
 import pandas as pd
 
@@ -272,7 +273,7 @@ def filter_low_quality_participants(
 # 4. Złożony wskaźnik samopoczucia
 # ---------------------------------------------------------------------------
 
-from features import (
+from src.features import (
     add_composite_wellness,
     add_ewma_load_features,
     add_lag_features,
@@ -285,9 +286,9 @@ from features import (
 # 5. Inżynieria cech
 # ---------------------------------------------------------------------------
 # UWAGA: add_lag_features, add_rolling_load_features, add_ewma_load_features,
-# add_composite_wellness, add_relative_rhr są zaimportowane z features.py -
-# to WSPÓLNY moduł używany też przez app/app.py, żeby backend liczył cechy
-# dokładnie tak samo jak podczas treningu (patrz docstring features.py).
+# add_composite_wellness, add_relative_rhr są zaimportowane z src/features.py -
+# to WSPÓLNY moduł używany też przez app.py, żeby backend liczył cechy
+# dokładnie tak samo jak podczas treningu (patrz docstring src/features.py).
 
 
 def add_target_column(
@@ -459,11 +460,11 @@ def main():
         type=float,
         default=100.0,
         help=(
-            "Próg wykluczenia CAŁEGO uczestnika ze względu na % braków w readiness "
+            "Próg wykluczenia CAŁEGO uczestnika ze względu na procent braków w readiness "
             "(domyślnie: 100 = wyłączone). Maskowanie długich luk (in_long_gap) i tak "
             "wyklucza niewiarygodne DNI niezależnie od tego progu, więc domyślnie "
             "pozwalamy zachować dobre odcinki danych nawet u uczestników z wysokim "
-            "ogólnym % braków, zamiast wyrzucać ich w całości."
+            "ogólnym procentem braków, zamiast wyrzucać ich w całości."
         ),
     )
     parser.add_argument(

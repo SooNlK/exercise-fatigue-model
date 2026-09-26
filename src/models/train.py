@@ -2,15 +2,15 @@
 Trenowanie i porównanie modeli predykcji next-day wellness (PMData)
 =====================================================================
 
-Wczytuje ml_dataset.csv (wygenerowany przez data_preparation.py) i:
+Wczytuje ml_dataset.csv (wygenerowany przez przygotowanie_danych.py) i:
 1. Usuwa wiersze z niekompletnymi cechami (początek serii uczestnika).
 2. Waliduje modele metodą Leave-One-Participant-Out (LOGO) - każdy fold
    testuje na całym jednym uczestniku, trenując na pozostałych 7. To
    sprawdza, czy model generalizuje na nowego zawodnika, którego nie widział
    w treningu - znacznie bardziej wiarygodne niż losowy podział, bo kolejne
-   dni tej samej osoby są mocno skorelowane.
+   dni tej samej osoby są mocno skorelowane (data leakage przy losowym CV).
 3. Porównuje: baseline "persystencji" (jutro = dziś), regresję liniową,
-   Ridge, Random Forest, Gradient Boosting, SVR.
+   Ridge, Random Forest, Gradient Boosting, SVR, XGBoost, LightGBM.
 4. Drukuje tabelę porównawczą (MAE, RMSE, R2, uśrednione po foldach).
 5. Pokazuje istotność cech (feature importance) dla Random Forest.
 
@@ -22,6 +22,7 @@ import argparse
 
 import numpy as np
 import pandas as pd
+from lightgbm import LGBMRegressor
 from sklearn.base import BaseEstimator, RegressorMixin
 from sklearn.ensemble import GradientBoostingRegressor, RandomForestRegressor
 from sklearn.linear_model import LinearRegression, Ridge
@@ -30,6 +31,7 @@ from sklearn.model_selection import LeaveOneGroupOut
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.svm import SVR
+from xgboost import XGBRegressor
 
 
 class ZeroChangeBaseline(BaseEstimator, RegressorMixin):
@@ -80,8 +82,6 @@ def load_dataset(path: str, target_col_name: str = "composite_wellness") -> tupl
     y = df["target"].reset_index(drop=True)
     groups = df["participant"].reset_index(drop=True)
 
-    # kolumna "dziś" pod baseline - to ostatnia z feature_cols (target_col dodany
-    # w data_preparation.py jako cecha wejściowa reprezentująca stan bieżący)
     today_col = target_col_name if target_col_name in feature_cols else feature_cols[-1]
 
     return X, y, groups, today_col
@@ -114,13 +114,13 @@ def evaluate_model(model, X: pd.DataFrame, y: pd.Series, groups: pd.Series) -> d
 
 def print_comparison_table(results: dict) -> None:
     print("\n=== Porównanie modeli (walidacja Leave-One-Participant-Out) ===\n")
-    header = f"{'Model':<22} | {'MAE':>14} | {'RMSE':>14} | {'R2':>14}"
+    header = f"{'Model':<35} | {'MAE':>14} | {'RMSE':>14} | {'R2':>14}"
     print(header)
     print("-" * len(header))
 
     for name, r in sorted(results.items(), key=lambda kv: kv[1]["MAE_mean"]):
         print(
-            f"{name:<22} | {r['MAE_mean']:>6.3f} ± {r['MAE_std']:<5.3f} | "
+            f"{name:<35} | {r['MAE_mean']:>6.3f} ± {r['MAE_std']:<5.3f} | "
             f"{r['RMSE_mean']:>6.3f} ± {r['RMSE_std']:<5.3f} | "
             f"{r['R2_mean']:>6.3f} ± {r['R2_std']:<5.3f}"
         )
@@ -195,6 +195,28 @@ def main():
             random_state=42,
         ),
         "SVR": make_pipeline(StandardScaler(), SVR(C=1.0, epsilon=0.1)),
+        "XGBoost (domyślny)": XGBRegressor(random_state=42, verbosity=0),
+        "XGBoost (regularyzowany)": XGBRegressor(
+            n_estimators=100,
+            max_depth=2,
+            learning_rate=0.05,
+            subsample=0.8,
+            colsample_bytree=0.8,
+            min_child_weight=15,
+            random_state=42,
+            verbosity=0,
+        ),
+        "LightGBM (domyślny)": LGBMRegressor(random_state=42, verbose=-1),
+        "LightGBM (regularyzowany)": LGBMRegressor(
+            n_estimators=100,
+            max_depth=2,
+            learning_rate=0.05,
+            subsample=0.8,
+            colsample_bytree=0.8,
+            min_child_samples=15,
+            random_state=42,
+            verbose=-1,
+        ),
     }
 
     results = {}
