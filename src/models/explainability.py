@@ -26,9 +26,9 @@ import matplotlib.pyplot as plt
 
 def main():
     parser = argparse.ArgumentParser(description="Analiza SHAP wytrenowanego modelu")
-    parser.add_argument("--model", default="model.joblib")
-    parser.add_argument("--dataset", default="ml_dataset.csv")
-    parser.add_argument("--output-plot", default="shap_summary.png")
+    parser.add_argument("--model", default="artifacts/model.joblib")
+    parser.add_argument("--dataset", default="data/processed/ml_dataset.csv")
+    parser.add_argument("--output-plot", default="artifacts/shap_summary.png")
     parser.add_argument("--top-n", type=int, default=15)
     args = parser.parse_args()
 
@@ -65,8 +65,8 @@ def main():
         corr = np.corrcoef(X[col].to_numpy(), shap_values[:, i])[0, 1]
         directions.append(corr)
     importance_df["kierunek_wplywu"] = [
-        "im wyżej, tym WYŻSZY target" if directions[feature_cols.index(f)] > 0.05
-        else "im wyżej, tym NIŻSZY target" if directions[feature_cols.index(f)] < -0.05
+        "im wyżej, tym wyższy target" if directions[feature_cols.index(f)] > 0.05
+        else "im wyżej, tym niższy target" if directions[feature_cols.index(f)] < -0.05
         else "brak jasnego kierunku"
         for f in importance_df["feature"]
     ]
@@ -81,7 +81,7 @@ def main():
     plt.savefig(args.output_plot, dpi=150, bbox_inches="tight")
     print(f"\nZapisano wykres SHAP summary do: {args.output_plot}")
 
-    importance_csv = "shap_importance.csv"
+    importance_csv = "data/processed/shap_importance.csv"
     importance_df.to_csv(importance_csv, index=False)
     print(f"Zapisano pełną tabelę rankingu do: {importance_csv}")
 

@@ -152,7 +152,7 @@ def print_feature_importance(X: pd.DataFrame, y: pd.Series, top_n: int = 10) -> 
 
 def main():
     parser = argparse.ArgumentParser(description="Trenowanie modeli predykcji next-day wellness")
-    parser.add_argument("--dataset", default="ml_dataset.csv", help="Ścieżka do ml_dataset.csv")
+    parser.add_argument("--dataset", default="data/processed/ml_dataset.csv", help="Ścieżka do ml_dataset.csv")
     parser.add_argument(
         "--target-col-name",
         default="composite_wellness",

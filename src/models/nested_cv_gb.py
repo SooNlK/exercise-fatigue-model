@@ -77,7 +77,7 @@ def select_best_params(X_train, y_train, groups_train, n_inner_splits: int = 5):
 
 def main():
     parser = argparse.ArgumentParser(description="Nested CV z lekkim grid search dla Gradient Boosting")
-    parser.add_argument("--dataset", default="ml_dataset_delta.csv")
+    parser.add_argument("--dataset", default="data/processed/ml_dataset_delta.csv")
     args = parser.parse_args()
 
     X, y, groups = load_dataset(args.dataset)

@@ -28,8 +28,8 @@ from sklearn.ensemble import GradientBoostingRegressor, RandomForestRegressor
 
 def main():
     parser = argparse.ArgumentParser(description="Trenowanie finalnego modelu produkcyjnego")
-    parser.add_argument("--dataset", default="ml_dataset_delta.csv")
-    parser.add_argument("--output", default="model.joblib")
+    parser.add_argument("--dataset", default="data/processed/ml_dataset_delta.csv")
+    parser.add_argument("--output", default="artifacts/model.joblib")
     parser.add_argument(
         "--predict-delta",
         action="store_true",
