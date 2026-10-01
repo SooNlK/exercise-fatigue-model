@@ -1,6 +1,10 @@
-from fastapi import FastAPI
-from pydantic import BaseModel, Field
 from datetime import date
+from fastapi import FastAPI, Depends
+from pydantic import BaseModel, Field
+from sqlalchemy.orm import Session
+
+from src.db.database import  Base, engine, get_db
+from src.db.models import DailyLog
 
 class DailyLogInput(BaseModel):
     date: date
@@ -17,10 +21,17 @@ class DailyLogInput(BaseModel):
 
 app = FastAPI()
 
+Base.metadata.create_all(engine)
+
 @app.get("/health")
-def read_root():
+def health():
     return {"status": "ok"}
 
 @app.post("/users/{user_id}/daily-log")
-def add_daily_log(user_id: str, entry: DailyLogInput):
-    return {"user_id": user_id, "entry": entry}
+def add_daily_log(user_id: str, entry: DailyLogInput, db: Session = Depends(get_db)):
+    daily_log = DailyLog(user_id=user_id, **entry.model_dump())
+    db.add(daily_log)
+    db.commit()
+    db.refresh(daily_log)
+
+    return daily_log
