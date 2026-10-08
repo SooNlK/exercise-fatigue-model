@@ -1,5 +1,7 @@
+import os
 from datetime import date
 
+import joblib
 import pandas as pd
 from fastapi import FastAPI, Depends
 from pydantic import BaseModel, Field
@@ -15,6 +17,14 @@ from src.features import (
     add_ewma_load_features,
     add_composite_wellness,
 )
+
+MODEL_PATH = os.environ.get("MODEL_PATH", "artifacts/model.joblib")
+artifact = joblib.load(MODEL_PATH)
+MODEL = artifact["model"]
+FEATURE_COLS = artifact["feature_cols"]
+THRESHOLDS = artifact["thresholds"]
+PREDICT_DELTA = artifact.get("predict_delta", False)
+LEVEL_COL = artifact.get("level_col", "composite_wellness")
 
 app = FastAPI()
 
@@ -66,5 +76,24 @@ def add_daily_log(user_id: str, entry: DailyLogInput, db: Session = Depends(get_
 
 @app.get("/users/{user_id}/predict")
 def predict(user_id: str, db: Session = Depends(get_db)):
-    df = build_today_features(user_id=user_id, db=db)
-    return df.to_dict(orient="records")
+    today_row = build_today_features(user_id=user_id, db=db)
+    X = today_row[FEATURE_COLS]
+
+    predicted_delta = float(MODEL.predict(X)[0])
+    current_wellness = float(today_row["composite_wellness"].values[0])
+    reconstructed_level = current_wellness + predicted_delta
+
+    if reconstructed_level < THRESHOLDS["dluga_regeneracja_ponizej"]:
+        recommendation = "DŁUGA_REGENERACJA"
+    elif reconstructed_level > THRESHOLDS["krotka_regeneracja_powyzej"]:
+        recommendation = "KROTKA_REGENERACJA"
+    else:
+        recommendation = "UMIARKOWANA_REGENERACJA"
+    return {
+        "user_id": user_id,
+        "date": str(today_row["date"].values[0]),
+        "current_wellness": round(current_wellness, 3),
+        "predicted_delta": round(predicted_delta, 3),
+        "predicted_wellness_tomorrow": round(reconstructed_level, 3),
+        "recommendation": recommendation,
+    }
