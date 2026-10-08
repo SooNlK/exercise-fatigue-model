@@ -475,7 +475,7 @@ def main():
     parser.add_argument(
         "--output",
         default="data/processed/ml_dataset.csv",
-        help="Nazwa pliku wyjściowego (domyślnie: ml_dataset.csv) - zmień przy porównywaniu wariantów targetu",
+        help="Nazwa pliku wyjściowego (domyślnie: ml_dataset.csv)",
     )
     args = parser.parse_args()
 
