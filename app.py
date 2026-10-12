@@ -2,6 +2,7 @@ import os
 from datetime import date
 
 import joblib
+import logging
 import pandas as pd
 from fastapi import FastAPI, Depends, HTTPException, Response
 from pydantic import BaseModel, Field
@@ -26,6 +27,7 @@ FEATURE_COLS = artifact["feature_cols"]
 THRESHOLDS = artifact["thresholds"]
 PREDICT_DELTA = artifact.get("predict_delta", False)
 LEVEL_COL = artifact.get("level_col", "composite_wellness")
+logger = logging.getLogger(__name__)
 
 app = FastAPI()
 
@@ -105,10 +107,15 @@ def predict(user_id: str, db: Session = Depends(get_db)):
 
     if X.isna().any().any():
         missing_cols = X.columns[X.isna().any()].tolist()
-        raise HTTPException(status_code=400, detail=f"Za mało danych historycznych od wykonania predykcji. missing features: {missing_cols}")
+        raise HTTPException(status_code=400, detail=f"Za mało danych historycznych do wykonania predykcji. missing features: {missing_cols}")
 
+    try:
+        predicted_delta = float(MODEL.predict(X)[0])
+    except Exception:
+        logger.exception(f"Błąd podczas wykonania predykcji dla usera {user_id}")
 
-    predicted_delta = float(MODEL.predict(X)[0])
+        raise HTTPException(status_code=500, detail="Nie udało się wykonać predykcji")
+
     current_wellness = float(today_row["composite_wellness"].values[0])
     reconstructed_level = current_wellness + predicted_delta
 
