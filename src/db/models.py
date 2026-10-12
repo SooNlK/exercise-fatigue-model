@@ -1,5 +1,5 @@
 from datetime import date
-from sqlalchemy import String, Float, Date
+from sqlalchemy import String, Float, Date, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from src.db.database import Base
@@ -7,6 +7,7 @@ from src.db.database import Base
 
 class DailyLog(Base):
     __tablename__ = 'daily_log'
+    __table_args__ = (UniqueConstraint("user_id", "date", name="uq_user_date"),)
 
     id: Mapped[int] = mapped_column(primary_key=True)
     user_id: Mapped[str] = mapped_column(String, index=True)

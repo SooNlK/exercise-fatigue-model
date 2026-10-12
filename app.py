@@ -5,6 +5,7 @@ import joblib
 import pandas as pd
 from fastapi import FastAPI, Depends, HTTPException, Response
 from pydantic import BaseModel, Field
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 from sqlalchemy import select
 
@@ -68,14 +69,34 @@ def build_today_features(user_id: str, db: Session) -> pd.DataFrame:
 def health():
     return {"status": "ok"}
 
-@app.post("/users/{user_id}/daily-log")
-def add_daily_log(user_id: str, entry: DailyLogInput, db: Session = Depends(get_db)):
-    daily_log = DailyLog(user_id=user_id, **entry.model_dump())
-    db.add(daily_log)
-    db.commit()
-    db.refresh(daily_log)
+@app.put("/users/{user_id}/daily-log")
+def add_or_update_daily_log(user_id: str, entry: DailyLogInput, response: Response, db: Session = Depends(get_db)):
+    stmt = select(DailyLog).where(DailyLog.user_id == user_id, DailyLog.date == entry.date)
 
-    return daily_log
+    existing_log = db.execute(stmt).scalar_one_or_none()
+
+    try:
+        if existing_log:
+            data = entry.model_dump(exclude_unset=True)
+
+            for field, value in data.items():
+                setattr(existing_log, field, value)
+
+            daily_log = existing_log
+            response.status_code = 200
+        else:
+            daily_log = DailyLog(user_id=user_id, **entry.model_dump())
+            db.add(daily_log)
+            response.status_code = 201
+
+        db.commit()
+        db.refresh(daily_log)
+
+        return daily_log
+
+    except SQLAlchemyError:
+        db.rollback()
+        raise HTTPException(status_code=500, detail="Nie udało się zapisać danych")
 
 @app.get("/users/{user_id}/predict")
 def predict(user_id: str, db: Session = Depends(get_db)):
