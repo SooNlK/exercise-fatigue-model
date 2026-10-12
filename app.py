@@ -3,7 +3,7 @@ from datetime import date
 
 import joblib
 import pandas as pd
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI, Depends, HTTPException, Response
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 from sqlalchemy import select
@@ -49,6 +49,9 @@ def build_today_features(user_id: str, db: Session) -> pd.DataFrame:
     stmt = (select(DailyLog).where(DailyLog.user_id == user_id).order_by(DailyLog.date.asc()))
     df = pd.read_sql(stmt, db.bind)
 
+    if df.empty:
+        raise HTTPException(status_code=404, detail="Brak wpisów dla tego użytkownika")
+
     df["participant"] = df["user_id"]
     df["day_of_week"] = pd.to_datetime(df["date"]).dt.dayofweek
 
@@ -78,6 +81,11 @@ def add_daily_log(user_id: str, entry: DailyLogInput, db: Session = Depends(get_
 def predict(user_id: str, db: Session = Depends(get_db)):
     today_row = build_today_features(user_id=user_id, db=db)
     X = today_row[FEATURE_COLS]
+
+    if X.isna().any().any():
+        missing_cols = X.columns[X.isna().any()].tolist()
+        raise HTTPException(status_code=400, detail=f"Za mało danych historycznych od wykonania predykcji. missing features: {missing_cols}")
+
 
     predicted_delta = float(MODEL.predict(X)[0])
     current_wellness = float(today_row["composite_wellness"].values[0])
