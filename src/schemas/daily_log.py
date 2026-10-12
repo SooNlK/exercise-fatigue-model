@@ -19,8 +19,8 @@ class DailyLogCreate(BaseModel):
 class DailyLogResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
-    id: str
-    user_id: int
+    id: int
+    user_id: str
     date: date
 
     readiness: float

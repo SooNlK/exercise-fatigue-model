@@ -21,6 +21,7 @@ from src.features import (
     add_ewma_load_features,
     add_composite_wellness,
 )
+from src.services.daily_log_service import DailyLogService
 
 MODEL_PATH = os.environ.get("MODEL_PATH", "artifacts/model.joblib")
 artifact = joblib.load(MODEL_PATH)
@@ -64,32 +65,17 @@ def health():
 
 @app.put("/users/{user_id}/daily-log", response_model=DailyLogResponse)
 def add_or_update_daily_log(user_id: str, entry: DailyLogCreate, response: Response, db: Session = Depends(get_db)):
-    stmt = select(DailyLog).where(DailyLog.user_id == user_id, DailyLog.date == entry.date)
-
-    existing_log = db.execute(stmt).scalar_one_or_none()
+    service = DailyLogService(db)
 
     try:
-        if existing_log:
-            data = entry.model_dump(exclude_unset=True)
-
-            for field, value in data.items():
-                setattr(existing_log, field, value)
-
-            daily_log = existing_log
-            response.status_code = 200
-        else:
-            daily_log = DailyLog(user_id=user_id, **entry.model_dump())
-            db.add(daily_log)
-            response.status_code = 201
-
-        db.commit()
-        db.refresh(daily_log)
-
-        return daily_log
-
+        daily_log, created = service.create_or_update(user_id=user_id, entry=entry)
     except SQLAlchemyError:
-        db.rollback()
         raise HTTPException(status_code=500, detail="Nie udało się zapisać danych")
+
+    response.status_code = 201 if created else 200
+
+    return daily_log
+
 
 @app.get("/users/{user_id}/predict", response_model=PredictionResponse)
 def predict(user_id: str, db: Session = Depends(get_db)):
