@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import select
 
 from src.schemas.daily_log import DailyLogCreate, DailyLogResponse
+from src.schemas.prediction import PredictionResponse
 from src.db.database import  Base, engine, get_db
 from src.db.models import DailyLog
 from src.features import (
@@ -90,7 +91,7 @@ def add_or_update_daily_log(user_id: str, entry: DailyLogCreate, response: Respo
         db.rollback()
         raise HTTPException(status_code=500, detail="Nie udało się zapisać danych")
 
-@app.get("/users/{user_id}/predict")
+@app.get("/users/{user_id}/predict", response_model=PredictionResponse)
 def predict(user_id: str, db: Session = Depends(get_db)):
     today_row = build_today_features(user_id=user_id, db=db)
     X = today_row[FEATURE_COLS]
