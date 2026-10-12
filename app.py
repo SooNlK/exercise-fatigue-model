@@ -10,6 +10,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 from sqlalchemy import select
 
+from src.schemas.daily_log import DailyLogCreate, DailyLogResponse
 from src.db.database import  Base, engine, get_db
 from src.db.models import DailyLog
 from src.features import (
@@ -34,18 +35,7 @@ app = FastAPI()
 Base.metadata.create_all(engine)
 
 
-class DailyLogInput(BaseModel):
-    date: date
-    readiness: float = Field(ge=0, le=10)
-    fatigue: float = Field(ge=0, le=5)
-    soreness: float = Field(ge=0, le=5)
-    sleep_duration_h: float = Field(ge=0, le=24)
-    sleep_quality: float = Field(ge=0, le=5)
-    daily_srpe: float | None = Field(default=None, ge=0)
-    resting_heart_rate: float | None = Field(default=None, ge=0)
-    sleep_overall_score: float | None = Field(default=None, ge=0)
-    sleep_deep_minutes: float | None = Field(default=None, ge=0)
-    hr_zone_active_minutes: float | None = Field(default=None, ge=0)
+
 
 
 def build_today_features(user_id: str, db: Session) -> pd.DataFrame:
@@ -71,8 +61,8 @@ def build_today_features(user_id: str, db: Session) -> pd.DataFrame:
 def health():
     return {"status": "ok"}
 
-@app.put("/users/{user_id}/daily-log")
-def add_or_update_daily_log(user_id: str, entry: DailyLogInput, response: Response, db: Session = Depends(get_db)):
+@app.put("/users/{user_id}/daily-log", response_model=DailyLogResponse)
+def add_or_update_daily_log(user_id: str, entry: DailyLogCreate, response: Response, db: Session = Depends(get_db)):
     stmt = select(DailyLog).where(DailyLog.user_id == user_id, DailyLog.date == entry.date)
 
     existing_log = db.execute(stmt).scalar_one_or_none()
