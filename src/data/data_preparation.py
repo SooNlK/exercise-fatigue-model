@@ -287,7 +287,7 @@ from src.features import (
 # ---------------------------------------------------------------------------
 # UWAGA: add_lag_features, add_rolling_load_features, add_ewma_load_features,
 # add_composite_wellness, add_relative_rhr są zaimportowane z src/features.py -
-# to WSPÓLNY moduł używany też przez app.py, żeby backend liczył cechy
+# to WSPÓLNY moduł używany też przez main.py, żeby backend liczył cechy
 # dokładnie tak samo jak podczas treningu (patrz docstring src/features.py).
 
 
