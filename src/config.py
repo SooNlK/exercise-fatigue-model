@@ -7,6 +7,7 @@ class Settings(BaseSettings):
     postgres_port: int
     postgres_db: str
 
+    model_path: str = "artifacts/model.joblib"
 
     model_config = SettingsConfigDict(
         env_file=".env",

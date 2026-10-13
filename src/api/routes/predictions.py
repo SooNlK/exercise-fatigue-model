@@ -1,5 +1,4 @@
 import logging
-import os
 
 import joblib
 from fastapi import APIRouter, Depends, HTTPException
@@ -9,16 +8,16 @@ from src.db.database import get_db
 from src.repositories.daily_log_repository import DailyLogRepository
 from src.schemas.prediction import PredictionResponse
 from src.services.prediction_service import PredictionService
+from src.config import settings
 
 logger = logging.getLogger(__name__)
 
-MODEL_PATH = os.environ.get("MODEL_PATH", "artifacts/model.joblib")
-artifact = joblib.load(MODEL_PATH)
+artifact = joblib.load(settings.model_path)
 MODEL = artifact["model"]
 FEATURE_COLS = artifact["feature_cols"]
 THRESHOLDS = artifact["thresholds"]
 
-router = APIRouter(prefix="/users/", tags=["predictions"])
+router = APIRouter(prefix="/users", tags=["predictions"])
 
 @router.get("/{user_id}/predict", response_model=PredictionResponse)
 def predict(user_id: str, db: Session = Depends(get_db)):
