@@ -9,6 +9,11 @@ from src.features import (
     add_ewma_load_features,
     add_composite_wellness
 )
+from src.exceptions.exceptions import (
+    InsufficientHistoryError,
+    NoUserDataError,
+    PredictionError,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +28,7 @@ class PredictionService:
         df = self.repository.get_by_user(user_id)
 
         if df.empty:
-            raise ValueError("Brak wpisów dla tego użytkownika")
+            raise NoUserDataError("Brak wpisów dla tego użytkownika")
 
         df["participant"] = df["user_id"]
         df["day_of_week"] = pd.to_datetime(df["date"]).dt.dayofweek
@@ -57,15 +62,13 @@ class PredictionService:
         missing_cols = X.columns[X.isna().any()].tolist()
 
         if missing_cols:
-            raise ValueError(
-                f"Za mało danych historycznych do wykonania predykcji. missing features: {missing_cols}"
-            )
+            raise InsufficientHistoryError(f"Za mało danych historycznych do wykonania predykcji. missing features: {missing_cols}")
 
         try:
             predicted_delta = float(self.model.predict(X)[0])
         except Exception:
             logger.exception(f"Błąd podczas wykonania predykcji dla usera {user_id}")
-            raise
+            raise PredictionError("Nie udało się wykonać predykcji")
 
         current_wellness = float(today_row["composite_wellness"].values[0])
         reconstructed_level = current_wellness + predicted_delta
