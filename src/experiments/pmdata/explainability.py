@@ -10,10 +10,14 @@ podnosi, czy obniża przewidywane samopoczucie), co ma bezpośrednią wartość
 aplikacyjną/sportową, a nie tylko techniczną.
 
 Użycie:
-    python explainability.py --model model.joblib --dataset ml_dataset.csv
+    python -m src.experiments.pmdata.explainability --model model.joblib --dataset ml_dataset.csv
+
+Wyniki: wykres i ranking CSV w artifacts/pmdata/explainability/.
+Wartości SHAP opisują model i nie dowodzą przyczynowego wpływu cech.
 """
 
-import argparse
+from pathlib import Path
+
 
 import joblib
 import matplotlib
@@ -23,13 +27,17 @@ import pandas as pd
 matplotlib.use("Agg")  # zapis do pliku, bez okna GUI
 import matplotlib.pyplot as plt
 
+from src.data.common import PMDATA_DIR, PolishArgumentParser
+from src.experiments.common import PMDATA_ARTIFACTS, print_outputs, print_table
+
 
 def main():
-    parser = argparse.ArgumentParser(description="Analiza SHAP wytrenowanego modelu")
-    parser.add_argument("--model", default="artifacts/model.joblib")
-    parser.add_argument("--dataset", default="data/processed/ml_dataset.csv")
-    parser.add_argument("--output-plot", default="artifacts/shap_summary.png")
-    parser.add_argument("--top-n", type=int, default=15)
+    parser = PolishArgumentParser(description="Analiza SHAP wytrenowanego modelu")
+    parser.add_argument("--model", default=str(PMDATA_ARTIFACTS / "model.joblib"), help='Ścieżka modelu wraz z metadanymi.')
+    parser.add_argument("--dataset", default=str(PMDATA_DIR / "ml_dataset_delta.csv"), help='Ścieżka przygotowanego zbioru CSV.')
+    parser.add_argument("--output-plot", default=str(PMDATA_ARTIFACTS / "explainability" / "shap_summary.png"), help='Ścieżka zapisu wykresu SHAP.')
+    parser.add_argument("--output-importance", default=str(PMDATA_ARTIFACTS / "explainability" / "shap_importance.csv"), help='Ścieżka zapisu rankingu cech CSV.')
+    parser.add_argument("--top-n", type=int, default=15, help='Liczba cech prezentowanych w rankingu (domyślnie: 15).')
     args = parser.parse_args()
 
     try:
@@ -72,18 +80,29 @@ def main():
     ]
 
     print(f"\n=== Ranking cech wg istotności SHAP (top {args.top_n}) ===\n")
-    print(importance_df.head(args.top_n).to_string(index=False))
+    print_table(importance_df.head(args.top_n))
 
     # zapis wykresu podsumowującego
     plt.figure()
     shap.summary_plot(shap_values, X, show=False, max_display=args.top_n)
+    plt.xlabel("Wartość SHAP (wpływ na wynik modelu)")
+    plt.title("Wpływ cech na prognozę modelu")
+    for axis in plt.gcf().axes:
+        if axis.get_ylabel() == "Feature value":
+            axis.set_ylabel("Wartość cechy")
+            axis.set_yticklabels([label.get_text().replace("Low", "Niska").replace("High", "Wysoka") for label in axis.get_yticklabels()])
     plt.tight_layout()
+    Path(args.output_plot).parent.mkdir(parents=True, exist_ok=True)
     plt.savefig(args.output_plot, dpi=150, bbox_inches="tight")
     print(f"\nZapisano wykres SHAP summary do: {args.output_plot}")
 
-    importance_csv = "data/processed/shap_importance.csv"
+    importance_csv = args.output_importance
+    Path(importance_csv).parent.mkdir(parents=True, exist_ok=True)
     importance_df.to_csv(importance_csv, index=False)
     print(f"Zapisano pełną tabelę rankingu do: {importance_csv}")
+    plt.close("all")
+    print_outputs("PMData — interpretacja SHAP", Path(args.output_plot).parent, [Path(args.output_plot).name])
+    print(f"  {Path(importance_csv).resolve()}")
 
 
 if __name__ == "__main__":

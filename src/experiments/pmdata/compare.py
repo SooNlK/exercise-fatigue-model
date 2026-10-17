@@ -2,23 +2,24 @@
 Trenowanie i porównanie modeli predykcji next-day wellness (PMData)
 =====================================================================
 
-Wczytuje ml_dataset.csv (wygenerowany przez przygotowanie_danych.py) i:
+Wczytuje ml_dataset.csv z poprawionego pipeline'u przygotowania danych i:
 1. Usuwa wiersze z niekompletnymi cechami (początek serii uczestnika).
 2. Waliduje modele metodą Leave-One-Participant-Out (LOGO) - każdy fold
-   testuje na całym jednym uczestniku, trenując na pozostałych 7. To
+   testuje na całym jednym uczestniku, trenując na pozostałych osobach. To
    sprawdza, czy model generalizuje na nowego zawodnika, którego nie widział
    w treningu - znacznie bardziej wiarygodne niż losowy podział, bo kolejne
    dni tej samej osoby są mocno skorelowane (data leakage przy losowym CV).
 3. Porównuje: baseline "persystencji" (jutro = dziś), regresję liniową,
    Ridge, Random Forest, Gradient Boosting, SVR, XGBoost, LightGBM.
-4. Drukuje tabelę porównawczą (MAE, RMSE, R2, uśrednione po foldach).
-5. Pokazuje istotność cech (feature importance) dla Random Forest.
+4. Wyświetla i zapisuje metryki MAE, RMSE i R² uśrednione po osobach.
+5. Zapisuje istotność cech Random Forest do artifacts/pmdata/comparison/.
 
 Użycie:
-    python train.py --dataset ml_dataset.csv
+    python -m src.experiments.pmdata.compare --dataset ml_dataset.csv
 """
 
-import argparse
+
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -32,6 +33,10 @@ from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.svm import SVR
 from xgboost import XGBRegressor
+
+from src.data.common import PMDATA_DIR, PolishArgumentParser
+from src.experiments.common import PMDATA_ARTIFACTS, print_outputs
+from src.data.pmdata.preparation import read_dataset_metadata, resolve_target_mode
 
 
 class ZeroChangeBaseline(BaseEstimator, RegressorMixin):
@@ -137,7 +142,7 @@ def print_comparison_table(results: dict) -> None:
         )
 
 
-def print_feature_importance(X: pd.DataFrame, y: pd.Series, top_n: int = 10) -> None:
+def print_feature_importance(X: pd.DataFrame, y: pd.Series, top_n: int = 10) -> pd.Series:
     rf = RandomForestRegressor(n_estimators=300, random_state=42)
     rf.fit(X, y)
     importances = pd.Series(rf.feature_importances_, index=X.columns).sort_values(ascending=False)
@@ -148,29 +153,13 @@ def print_feature_importance(X: pd.DataFrame, y: pd.Series, top_n: int = 10) -> 
         "\nUwaga: model trenowany na całym zbiorze wyłącznie do celów interpretacji "
         "(feature importance) - do oceny skuteczności używaj wyników z walidacji LOGO powyżej."
     )
+    return importances
 
 
-def main():
-    parser = argparse.ArgumentParser(description="Trenowanie modeli predykcji next-day wellness")
-    parser.add_argument("--dataset", default="data/processed/ml_dataset.csv", help="Ścieżka do ml_dataset.csv")
-    parser.add_argument(
-        "--target-col-name",
-        default="composite_wellness",
-        help="Nazwa kolumny reprezentującej dzisiejszy stan (musi zgadzać się z --target-col z data_preparation.py)",
-    )
-    parser.add_argument(
-        "--predict-delta",
-        action="store_true",
-        help="Ustaw, jeśli --dataset zawiera target typu DELTA (zmiana) - użyje poprawnego baseline'u (0), a nie persystencji poziomu",
-    )
-    args = parser.parse_args()
-
-    X, y, groups, today_col = load_dataset(args.dataset, args.target_col_name)
-    print(f"Liczba cech: {X.shape[1]}")
-    print(f"Cechy: {list(X.columns)}\n")
-
-    baseline_model = ZeroChangeBaseline() if args.predict_delta else PersistenceBaseline(today_col=today_col)
-    baseline_name = "Brak zmiany (baseline)" if args.predict_delta else "Persystencja (baseline)"
+def build_models(predict_delta: bool, today_col: str) -> dict:
+    """Stałe konfiguracje modeli wspólne dla porównań i odtwarzalnej oceny."""
+    baseline_model = ZeroChangeBaseline() if predict_delta else PersistenceBaseline(today_col=today_col)
+    baseline_name = "Brak zmiany (baseline)" if predict_delta else "Persystencja (baseline)"
 
     models = {
         baseline_name: baseline_model,
@@ -219,13 +208,53 @@ def main():
         ),
     }
 
+    return models
+
+
+def main():
+    parser = PolishArgumentParser(description="Porównanie modeli wellness następnego dnia")
+    parser.add_argument("--dataset", default=str(PMDATA_DIR / "ml_dataset.csv"), help="Ścieżka do poprawionego zbioru CSV")
+    parser.add_argument(
+        "--target-col-name",
+        default="composite_wellness",
+        help="Nazwa kolumny reprezentującej dzisiejszy stan (musi zgadzać się z --target-col z data_preparation.py)",
+    )
+    parser.add_argument(
+        "--predict-delta",
+        action="store_true",
+        default=None,
+        help="Ustaw, jeśli --dataset zawiera target typu DELTA (zmiana) - użyje poprawnego baseline'u (0), a nie persystencji poziomu",
+    )
+    parser.add_argument("--no-predict-delta", dest="predict_delta", action="store_false", help='Prognozuj poziom wskaźnika zamiast zmiany.')
+    parser.add_argument("--output-dir", type=Path, default=PMDATA_ARTIFACTS / "comparison", help='Folder plików wynikowych; domyślnie podfolder danego eksperymentu w artifacts/.')
+    args = parser.parse_args()
+
+    try:
+        args.predict_delta = resolve_target_mode(read_dataset_metadata(args.dataset), args.predict_delta)
+    except ValueError as exc:
+        parser.error(str(exc))
+
+    X, y, groups, today_col = load_dataset(args.dataset, args.target_col_name)
+    print(f"Liczba cech: {X.shape[1]}")
+    print(f"Cechy: {list(X.columns)}\n")
+
+    models = build_models(args.predict_delta, today_col)
+
     results = {}
     for name, model in models.items():
         print(f"Trenuję: {name}...")
         results[name] = evaluate_model(model, X, y, groups)
 
     print_comparison_table(results)
-    print_feature_importance(X, y)
+    importances = print_feature_importance(X, y)
+    args.output_dir.mkdir(parents=True, exist_ok=True)
+    pd.DataFrame.from_dict(results, orient="index").rename_axis("model").reset_index().to_csv(
+        args.output_dir / "metrics.csv", index=False,
+    )
+    importances.rename_axis("feature").rename("importance").reset_index().to_csv(
+        args.output_dir / "feature_importance.csv", index=False,
+    )
+    print_outputs("PMData — porównanie modeli", args.output_dir, ["metrics.csv", "feature_importance.csv"])
 
 
 if __name__ == "__main__":

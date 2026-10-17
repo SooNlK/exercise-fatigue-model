@@ -3,10 +3,10 @@ Zagnieżdżona walidacja krzyżowa (nested CV) z lekkim grid search dla Gradient
 =========================================================================================
 
 Struktura:
-- Zewnętrzna pętla: Leave-One-Participant-Out (12 foldów)
+- Zewnętrzna pętla: Leave-One-Participant-Out (tyle foldów, ilu uczestników)
 - Wewnętrzna pętla: dla każdego zewnętrznego foldu, mała siatka hiperparametrów
   (max_depth x learning_rate, 9 kombinacji) testowana metodą GroupKFold na
-  pozostałych 11 uczestnikach - wybieramy kombinację z najniższym wewnętrznym MAE
+  pozostałych uczestnikach - wybieramy kombinację z najniższym wewnętrznym MAE
 - Finalna ocena: model z wybranymi hiperparametrami trenowany na całym
   zewnętrznym zbiorze treningowym, oceniany na niewidzianym uczestniku
 
@@ -16,18 +16,25 @@ foldami), to sam w sobie ważny wniosek o tym, że przy tej wielkości próby
 strojenie hiperparametrów nie daje wiarygodnego, jednoznacznego rozstrzygnięcia.
 
 Użycie:
-    python nested_cv_gb.py --dataset ml_dataset_delta.csv
+    python -m src.experiments.pmdata.nested_cv --dataset ml_dataset_delta.csv
+
+Wyniki: metryki każdej osoby, podsumowanie i wybrane parametry w
+artifacts/pmdata/nested_cv/. Skrypt nie zapisuje ani nie wdraża modelu API.
 """
 
-import argparse
 from collections import Counter
 from itertools import product
+from pathlib import Path
+
 
 import numpy as np
 import pandas as pd
 from sklearn.ensemble import GradientBoostingRegressor
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from sklearn.model_selection import GroupKFold, LeaveOneGroupOut
+
+from src.data.common import PMDATA_DIR, PolishArgumentParser
+from src.experiments.common import PMDATA_ARTIFACTS, print_outputs
 
 PARAM_GRID = {
     "max_depth": [2, 3, 4],
@@ -76,8 +83,9 @@ def select_best_params(X_train, y_train, groups_train, n_inner_splits: int = 5):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Nested CV z lekkim grid search dla Gradient Boosting")
-    parser.add_argument("--dataset", default="data/processed/ml_dataset_delta.csv")
+    parser = PolishArgumentParser(description="Zagnieżdżona walidacja Gradient Boostingu z siatką parametrów")
+    parser.add_argument("--dataset", default=str(PMDATA_DIR / "ml_dataset_delta.csv"), help='Ścieżka przygotowanego zbioru CSV.')
+    parser.add_argument("--output-dir", type=Path, default=PMDATA_ARTIFACTS / "nested_cv", help='Folder plików wynikowych; domyślnie podfolder danego eksperymentu w artifacts/.')
     args = parser.parse_args()
 
     X, y, groups = load_dataset(args.dataset)
@@ -87,6 +95,7 @@ def main():
     logo = LeaveOneGroupOut()
     outer_maes, outer_rmses, outer_r2s = [], [], []
     chosen_params_log = []
+    participant_scores = []
 
     for fold_i, (train_idx, test_idx) in enumerate(logo.split(X, y, groups), start=1):
         X_train, X_test = X.iloc[train_idx], X.iloc[test_idx]
@@ -107,9 +116,12 @@ def main():
         outer_maes.append(mae)
         outer_rmses.append(rmse)
         outer_r2s.append(r2)
+        participant_scores.append({"participant": test_participant, "n": len(test_idx),
+                                   "MAE": mae, "RMSE": rmse, "R2": r2,
+                                   "inner_mae": inner_mae, **best_params})
 
         print(
-            f"Fold {fold_i:2d} (test={test_participant:>4}): "
+            f"Podział {fold_i:2d} (osoba testowa={test_participant:>4}): "
             f"wybrane={best_params}, wewn.MAE={inner_mae:.3f}, "
             f"zewn.MAE={mae:.3f}, R2={r2:.3f}"
         )
@@ -137,6 +149,15 @@ def main():
             "\nWybór hiperparametrów jest względnie stabilny między foldami - "
             "to dobry znak, że wybrana konfiguracja nie jest przypadkowa."
         )
+
+    args.output_dir.mkdir(parents=True, exist_ok=True)
+    pd.DataFrame(participant_scores).to_csv(args.output_dir / "per_participant.csv", index=False)
+    pd.DataFrame([{
+        "MAE_mean": np.mean(outer_maes), "MAE_std": np.std(outer_maes),
+        "RMSE_mean": np.mean(outer_rmses), "RMSE_std": np.std(outer_rmses),
+        "R2_mean": np.mean(outer_r2s), "R2_std": np.std(outer_r2s),
+    }]).to_csv(args.output_dir / "summary.csv", index=False)
+    print_outputs("PMData — walidacja zagnieżdżona", args.output_dir, ["per_participant.csv", "summary.csv"])
 
 
 if __name__ == "__main__":
