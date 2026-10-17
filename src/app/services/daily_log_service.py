@@ -1,9 +1,9 @@
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
-from src.db.models import DailyLog
-from src.repositories.daily_log_repository import DailyLogRepository
-from src.schemas.daily_log import DailyLogCreate
+from src.app.db.models import DailyLog
+from src.app.repositories.daily_log_repository import DailyLogRepository
+from src.app.schemas.daily_log import DailyLogCreate
 
 class DailyLogService:
     def __init__(self, db: Session):

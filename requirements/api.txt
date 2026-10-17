@@ -1,0 +1,11 @@
+# API and shared numerical libraries; preserve versions from the existing lock.
+-c ../requirements.txt
+fastapi
+uvicorn
+pydantic-settings
+SQLAlchemy
+psycopg2-binary
+numpy
+pandas
+scikit-learn
+joblib

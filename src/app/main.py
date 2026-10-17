@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 
-from src.api.routes import daily_logs, predictions
-from src.db.database import  Base, engine
+from src.app.api.routes import daily_logs, predictions
+from src.app.db.database import  Base, engine
 
 app = FastAPI()
 

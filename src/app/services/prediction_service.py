@@ -1,15 +1,15 @@
 import logging
 import pandas as pd
 
-from src.repositories.daily_log_repository import DailyLogRepository
-from src.features import (
+from src.app.repositories.daily_log_repository import DailyLogRepository
+from src.data.pmdata.features import (
     add_relative_rhr,
     add_rolling_load_features,
     add_lag_features,
     add_ewma_load_features,
     add_composite_wellness
 )
-from src.exceptions.exceptions import (
+from src.app.exceptions import (
     InsufficientHistoryError,
     NoUserDataError,
     PredictionError,

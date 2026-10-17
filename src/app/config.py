@@ -1,4 +1,8 @@
+from pathlib import Path
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 class Settings(BaseSettings):
     postgres_user: str
@@ -7,10 +11,10 @@ class Settings(BaseSettings):
     postgres_port: int
     postgres_db: str
 
-    model_path: str = "artifacts/model.joblib"
+    model_path: str = str(PROJECT_ROOT / "artifacts" / "model.joblib")
 
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=PROJECT_ROOT / ".env",
         env_file_encoding="utf-8",
     )
 

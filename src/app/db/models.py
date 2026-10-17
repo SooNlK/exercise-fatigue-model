@@ -2,7 +2,7 @@ from datetime import date
 from sqlalchemy import String, Float, Date, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
-from src.db.database import Base
+from src.app.db.database import Base
 
 
 class DailyLog(Base):

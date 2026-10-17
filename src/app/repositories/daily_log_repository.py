@@ -4,7 +4,7 @@ import pandas as pd
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from src.db.models import DailyLog
+from src.app.db.models import DailyLog
 
 
 class DailyLogRepository:

@@ -4,12 +4,12 @@ import joblib
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from src.db.database import get_db
-from src.repositories.daily_log_repository import DailyLogRepository
-from src.schemas.prediction import PredictionResponse
-from src.services.prediction_service import PredictionService
-from src.config import settings
-from src.exceptions.exceptions import (
+from src.app.db.database import get_db
+from src.app.repositories.daily_log_repository import DailyLogRepository
+from src.app.schemas.prediction import PredictionResponse
+from src.app.services.prediction_service import PredictionService
+from src.app.config import settings
+from src.app.exceptions import (
     InsufficientHistoryError,
     NoUserDataError,
     PredictionError,
