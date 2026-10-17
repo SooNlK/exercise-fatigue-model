@@ -1,0 +1,3 @@
+# Research dependencies plus Parquet support for the SoccerMon GPS pilot.
+-r research.txt
+pyarrow==23.0.1
