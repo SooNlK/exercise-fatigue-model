@@ -12,7 +12,7 @@ SOCCERMON_OBJECTIVE_DIR = SOCCERMON_DIR / "objective"
 
 
 class PolishArgumentParser(argparse.ArgumentParser):
-    """Wyświetla wspólną pomoc i komunikaty błędów po polsku."""
+    """Wyświetla wspólną pomoc i komunikaty błędów."""
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, add_help=False, **kwargs)
