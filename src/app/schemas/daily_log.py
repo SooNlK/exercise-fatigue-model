@@ -4,6 +4,7 @@ from pydantic import BaseModel, Field, ConfigDict
 class DailyLogCreate(BaseModel):
     date: date
     fatigue: int = Field(ge=1, le=5, description="Liczba całkowita 1-5; niżej = większe zmęczenie")
+
     soreness: int | None = Field(default=None, ge=1, le=5, description="Liczba całkowita 1-5")
     readiness: int | None = Field(default=None, ge=1, le=10, description="Liczba całkowita 1-10")
     sleep_duration: float | None = Field(default=None, ge=0, le=24, description="Liczba 0-24")

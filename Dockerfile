@@ -10,7 +10,7 @@ COPY requirements/ requirements/
 RUN pip install --no-cache-dir -r requirements/api.txt
 
 COPY src/ src/
-COPY artifacts/model.joblib artifacts/model.joblib
+COPY artifacts/pmdata/model.joblib artifacts/pmdata/model.joblib
 
 EXPOSE 8000
 

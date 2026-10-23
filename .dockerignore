@@ -11,4 +11,6 @@ tests/
 .env
 .env.*
 artifacts/*
-!artifacts/model.joblib
+!artifacts/pmdata/
+artifacts/pmdata/*
+!artifacts/pmdata/model.joblib
