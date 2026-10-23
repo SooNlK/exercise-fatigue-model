@@ -1,6 +1,6 @@
 """Trening i zapis dwóch metod prognozowania ryzyka SoccerMon.
 
-1. Wczytuje dataset.csv i audit.json z przygotowanych danych.
+1. Wczytuje dataset.csv z przygotowanych danych.
 2. Sprawdza cel następnego dnia, skale, historię i zestaw cech.
 3. Dopasowuje osobniczą metodę częstości oraz klasyfikator boosting.
 4. Zapisuje osobne pliki joblib i metadane JSON do artifacts/soccermon/models/.
@@ -40,14 +40,11 @@ def sha256(path):
 def read_training_data(input_dir, train_before=None):
     """Odrzuca niezgodny zbiór; nie uzupełnia brakujących celów."""
     data = pd.read_csv(input_dir / "dataset.csv", parse_dates=["date", "target_date"])
-    audit = json.loads((input_dir / "audit.json").read_text(encoding="utf-8"))
     sample = pd.DataFrame({"date": [pd.Timestamp("2000-01-01")], "participant": ["schema"]})
     for name in [*WELLNESS, "daily_srpe"]:
         sample[name] = np.nan
     _, sets = make_features(sample)
     columns = sets["wellness_load"]
-    if audit.get("feature_sets") != sets:
-        raise ValueError("Audyt zawiera niezgodny zestaw cech SoccerMon.")
     required = ["participant", "date", "target_date", "target", "intense_day", "fatigue_history_count", *columns]
     if not set(required).issubset(data.columns):
         raise ValueError("Brak wymaganych kolumn treningowych.")
@@ -79,7 +76,7 @@ def train_models(input_dir=SOCCERMON_DIR, output_dir=SOCCERMON_ARTIFACTS / "mode
     input_dir, output_dir = Path(input_dir), Path(output_dir)
     data, columns = read_training_data(input_dir, train_before)
     y = event_labels(data)
-    sources = {str((input_dir / name).resolve()): sha256(input_dir / name) for name in ["dataset.csv", "audit.json"]}
+    sources = {str((input_dir / "dataset.csv").resolve()): sha256(input_dir / "dataset.csv")}
     code_paths = ["src/models/soccermon/risk.py", "src/models/soccermon/predictor.py",
                   "src/data/soccermon/preparation.py", "src/experiments/soccermon/train_risk.py"]
     metadata = {

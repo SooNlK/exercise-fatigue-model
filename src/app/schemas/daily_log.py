@@ -3,17 +3,14 @@ from pydantic import BaseModel, Field, ConfigDict
 
 class DailyLogCreate(BaseModel):
     date: date
-    readiness: float = Field(ge=0, le=10)
-    fatigue: float = Field(ge=0, le=5)
-    soreness: float = Field(ge=0, le=5)
-    sleep_duration_h: float = Field(ge=0, le=24)
-    sleep_quality: float = Field(ge=0, le=5)
-
+    fatigue: int = Field(ge=1, le=5, description="Liczba całkowita 1-5; niżej = większe zmęczenie")
+    soreness: int | None = Field(default=None, ge=1, le=5, description="Liczba całkowita 1-5")
+    readiness: int | None = Field(default=None, ge=1, le=10, description="Liczba całkowita 1-10")
+    sleep_duration: float | None = Field(default=None, ge=0, le=24, description="Liczba 0-24")
+    sleep_quality: int | None = Field(default=None, ge=1, le=5 ,description="Liczba całkowita 1-5")
+    mood: int | None = Field(default=None, ge=1, le=5, description="Liczba całkowita 1-5")
+    stress: int | None = Field(default=None, ge=1, le=5, description="Liczba całkowita 1-5")
     daily_srpe: float | None = Field(default=None, ge=0)
-    resting_heart_rate: float | None = Field(default=None, ge=0)
-    sleep_overall_score: float | None = Field(default=None, ge=0)
-    sleep_deep_minutes: float | None = Field(default=None, ge=0)
-    hr_zone_active_minutes: float | None = Field(default=None, ge=0)
 
 
 class DailyLogResponse(BaseModel):
@@ -23,14 +20,12 @@ class DailyLogResponse(BaseModel):
     user_id: str
     date: date
 
-    readiness: float
     fatigue: float
-    soreness: float
-    sleep_duration_h: float
-    sleep_quality: float
 
+    readiness: float | None
+    soreness: float | None
+    sleep_duration: float | None
+    sleep_quality: float | None
+    mood: float | None
+    stress: float | None
     daily_srpe: float | None
-    resting_heart_rate: float | None
-    sleep_overall_score: float | None
-    sleep_deep_minutes: float | None
-    hr_zone_active_minutes: float | None
