@@ -10,7 +10,7 @@ COPY requirements/ requirements/
 RUN pip install --no-cache-dir -r requirements/api.txt
 
 COPY src/ src/
-COPY artifacts/pmdata/model.joblib artifacts/pmdata/model.joblib
+COPY artifacts/soccermon/models/ artifacts/soccermon/models/
 
 EXPOSE 8000
 

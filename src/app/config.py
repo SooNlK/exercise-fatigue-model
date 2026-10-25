@@ -11,7 +11,7 @@ class Settings(BaseSettings):
     postgres_port: int
     postgres_db: str
 
-    model_path: str = str(PROJECT_ROOT / "artifacts" / "model.joblib")
+    model_path: str = str(PROJECT_ROOT / "artifacts" / "soccermon" / "models" / "boosting_risk.joblib")
 
     model_config = SettingsConfigDict(
         env_file=PROJECT_ROOT / ".env",

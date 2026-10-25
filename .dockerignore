@@ -11,6 +11,8 @@ tests/
 .env
 .env.*
 artifacts/*
-!artifacts/pmdata/
-artifacts/pmdata/*
-!artifacts/pmdata/model.joblib
+!artifacts/soccermon/
+artifacts/soccermon/*
+!artifacts/soccermon/models/
+artifacts/soccermon/models/*
+!artifacts/soccermon/models/*.joblib
