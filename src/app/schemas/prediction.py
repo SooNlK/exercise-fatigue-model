@@ -1,16 +1,22 @@
 from datetime import date
-from pydantic import BaseModel
-from enum import Enum
+from pydantic import BaseModel, Field
 
-class RecoveryRecommendation(str, Enum):
-    LONG = "DŁUGA_REGENERACJA"
-    MODERATE = "UMIARKOWANA_REGENERACJA"
-    SHORT = "KROTKA_REGENERACJA"
 
 class PredictionResponse(BaseModel):
     user_id: str
-    date: date
-    current_wellness: float
-    predicted_delta: float
-    predicted_wellness_tomorrow: float
-    recommendation: RecoveryRecommendation
+    prediction_date: date
+    target_date: date
+
+    current_fatigue: int = Field(ge=1, le=5)
+    deterioration_probability: float = Field(ge=0, le=1)
+
+    model_id: str
+    method: str
+    probability_source: str
+
+    training_rows_for_person: int
+    known_person_with_20_training_pairs: bool
+
+    intense_day: bool
+    intensity_status: str
+    target_definition: str
