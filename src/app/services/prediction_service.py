@@ -29,9 +29,9 @@ class PredictionService:
 
         try:
             history = history.copy()
-            history[date] = pd.to_datetime(history[date], errors="raise")
+            history["date"] = pd.to_datetime(history["date"], errors="raise")
 
-            history = history.loc[history[date].le(pd.Timestamp(prediction_date))].copy()
+            history = history.loc[history["date"].le(pd.Timestamp(prediction_date))].copy()
 
             if history.empty:
                 raise NoUserDataError("Brak raportów dla wskazanej daty")
