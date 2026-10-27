@@ -205,6 +205,112 @@ class DailyLogApiTests(unittest.TestCase):
         self.assertEqual(response.status_code, 404)
         self.assertEqual(self.row_count(), 0)
 
+    def get_history(self, params=None, user_id="test-user"):
+        return self.client.get(
+            "/me/daily-logs",
+            params=params,
+            headers={
+                "Authorization": (
+                    f"Bearer {create_access_token(user_id)}"
+                )
+            },
+        )
+
+    def test_history_without_reports_returns_empty_list(self):
+        response = self.get_history()
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), [])
+
+    def test_history_is_sorted_and_filters_are_inclusive(self):
+        for day in [
+            "2026-10-27",
+            "2026-10-25",
+            "2026-10-26",
+        ]:
+            response = self.save({
+                **self.payload,
+                "date": day,
+            })
+            self.assertEqual(response.status_code, 201)
+
+        cases = [
+            (
+                {},
+                ["2026-10-25", "2026-10-26", "2026-10-27"],
+            ),
+            (
+                {"date_from": "2026-10-26"},
+                ["2026-10-26", "2026-10-27"],
+            ),
+            (
+                {"date_to": "2026-10-26"},
+                ["2026-10-25", "2026-10-26"],
+            ),
+            (
+                {
+                    "date_from": "2026-10-26",
+                    "date_to": "2026-10-26",
+                },
+                ["2026-10-26"],
+            ),
+        ]
+
+        for params, expected_dates in cases:
+            with self.subTest(params=params):
+                response = self.get_history(params=params)
+
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(
+                    [row["date"] for row in response.json()],
+                    expected_dates,
+                )
+
+    def test_history_contains_only_current_users_reports(self):
+        self.save(
+            {**self.payload, "fatigue": 1},
+            user_id="user-a",
+        )
+        self.save(
+            {**self.payload, "fatigue": 5},
+            user_id="user-b",
+        )
+
+        response = self.get_history(
+            user_id="user-a",
+            params={"user_id": "user-b"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        rows = response.json()
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["user_id"], "user-a")
+        self.assertEqual(rows[0]["fatigue"], 1)
+
+    def test_history_rejects_invalid_dates(self):
+        for params in [
+            {
+                "date_from": "2026-10-27",
+                "date_to": "2026-10-25",
+            },
+            {"date_from": "niepoprawna-data"},
+        ]:
+            with self.subTest(params=params):
+                response = self.get_history(params=params)
+                self.assertEqual(response.status_code, 422)
+
+    def test_history_requires_valid_token(self):
+        for headers in [
+            {},
+            {"Authorization": "Bearer invalid-token"},
+        ]:
+            with self.subTest(headers=headers):
+                response = self.client.get(
+                    "/me/daily-logs",
+                    headers=headers,
+                )
+                self.assertEqual(response.status_code, 401)
+
 
 if __name__ == "__main__":
     unittest.main()
