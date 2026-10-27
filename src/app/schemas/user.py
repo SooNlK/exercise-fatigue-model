@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, SecretStr
 
@@ -13,3 +14,16 @@ class UserResponse(BaseModel):
     id: str
     email: EmailStr
     created_at: datetime
+
+
+class UserLogin(BaseModel):
+    email: EmailStr
+    password: SecretStr = Field(
+        min_length=1,
+        max_length=128,
+    )
+
+
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: Literal["bearer"] = "bearer"
