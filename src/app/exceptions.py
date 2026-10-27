@@ -12,3 +12,7 @@ class InsufficientHistoryError(AppError):
 
 class PredictionError(AppError):
     """Błąd podczas wykonywania predykcji modelu."""
+
+
+class EmailAlreadyExistsError(AppError):
+    """Podany adres e-mail jest już zajęty."""
