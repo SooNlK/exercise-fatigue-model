@@ -7,6 +7,10 @@ import numpy as np
 import pandas as pd
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
+from pydantic import SecretStr
+from sqlalchemy import create_engine
+from sqlalchemy.orm import Session
+from sqlalchemy.pool import StaticPool
 
 from src.data.soccermon.preparation import make_features
 from src.models.soccermon.risk import (
@@ -67,6 +71,7 @@ class PredictionApiTests(unittest.TestCase):
             "POSTGRES_HOST": "localhost",
             "POSTGRES_PORT": "5432",
             "POSTGRES_DB": "test",
+            "JWT_SECRET_KEY": "test-only-secret-0123456789abcdef0123456789abcdef",
         }
 
         # Router ładuje model podczas importu, więc zastępujemy loader.
@@ -78,6 +83,41 @@ class PredictionApiTests(unittest.TestCase):
                 self.routes = importlib.import_module(
                     "src.app.api.routes.predictions"
                 )
+
+        from src.app.config import settings
+        from src.app.db.database import Base
+        from src.app.db.models import User
+        from src.app.security import create_access_token
+
+        secret_patch = patch.object(
+            settings,
+            "jwt_secret_key",
+            SecretStr("test-only-secret-0123456789abcdef0123456789abcdef"),
+        )
+        secret_patch.start()
+        self.addCleanup(secret_patch.stop)
+        self.engine = create_engine(
+            "sqlite://",
+            connect_args={"check_same_thread": False},
+            poolclass=StaticPool,
+        )
+        self.addCleanup(self.engine.dispose)
+        Base.metadata.create_all(self.engine)
+        with Session(self.engine) as session:
+            session.add(User(
+                id="test-user",
+                email="test-user@example.com",
+                password_hash="unused-in-token-tests",
+            ))
+            session.commit()
+
+        def test_db():
+            with Session(self.engine) as session:
+                yield session
+
+        self.headers = {
+            "Authorization": f"Bearer {create_access_token('test-user')}"
+        }
 
         # Działa również wtedy, gdy router zaimportowano wcześniej.
         artifact_patch = patch.object(
@@ -102,15 +142,16 @@ class PredictionApiTests(unittest.TestCase):
         # Nie importujemy main.py, żeby nie uruchamiać create_all().
         app = FastAPI()
         app.include_router(self.routes.router)
-        app.dependency_overrides[self.routes.get_db] = lambda: object()
+        app.dependency_overrides[self.routes.get_db] = test_db
 
         self.client = TestClient(app)
         self.addCleanup(self.client.close)
 
     def get_prediction(self):
         return self.client.get(
-            "/users/test-user/predict",
+            "/me/predict",
             params={"prediction_date": "2026-10-25"},
+            headers=self.headers,
         )
 
     def test_correct_prediction(self):
@@ -197,6 +238,46 @@ class PredictionApiTests(unittest.TestCase):
         self.assertTrue(
             self.model.last_input["daily_srpe"].isna().all()
         )
+
+    def test_missing_token_returns_401_without_reading_reports(self):
+        response = self.client.get(
+            "/me/predict",
+            params={"prediction_date": "2026-10-25"},
+        )
+
+        self.assertEqual(response.status_code, 401)
+        self.repository.get_by_user.assert_not_called()
+
+    def test_invalid_token_returns_401_without_reading_reports(self):
+        response = self.client.get(
+            "/me/predict",
+            params={"prediction_date": "2026-10-25"},
+            headers={"Authorization": "Bearer invalid-token"},
+        )
+
+        self.assertEqual(response.status_code, 401)
+        self.repository.get_by_user.assert_not_called()
+
+    def test_query_cannot_choose_another_owner(self):
+        response = self.client.get(
+            "/me/predict",
+            params={"prediction_date": "2026-10-25", "user_id": "user-b"},
+            headers=self.headers,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["user_id"], "test-user")
+        self.repository.get_by_user.assert_called_once_with("test-user")
+
+    def test_legacy_user_route_is_not_available(self):
+        response = self.client.get(
+            "/users/user-b/predict",
+            params={"prediction_date": "2026-10-25"},
+            headers=self.headers,
+        )
+
+        self.assertEqual(response.status_code, 404)
+        self.repository.get_by_user.assert_not_called()
 
 
 if __name__ == "__main__":

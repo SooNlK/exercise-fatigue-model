@@ -4,7 +4,8 @@ from unittest.mock import patch
 
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine, func, select
+from pydantic import SecretStr
+from sqlalchemy import create_engine, event, func, select
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
@@ -15,22 +16,47 @@ with patch.dict(os.environ, {
     "POSTGRES_HOST": "localhost",
     "POSTGRES_PORT": "5432",
     "POSTGRES_DB": "test",
+    "JWT_SECRET_KEY": "test-only-secret-0123456789abcdef0123456789abcdef",
 }):
     from src.app.api.routes import daily_logs
     from src.app.db.database import Base, get_db
-    from src.app.db.models import DailyLog
+    from src.app.db.models import DailyLog, User
+    from src.app.config import settings
+    from src.app.security import create_access_token
 
 
 class DailyLogApiTests(unittest.TestCase):
     def setUp(self):
+        secret_patch = patch.object(
+            settings,
+            "jwt_secret_key",
+            SecretStr("test-only-secret-0123456789abcdef0123456789abcdef"),
+        )
+        secret_patch.start()
+        self.addCleanup(secret_patch.stop)
         # Każdy test otrzymuje nową bazę wyłącznie w pamięci.
         self.engine = create_engine(
             "sqlite://",
             connect_args={"check_same_thread": False},
             poolclass=StaticPool,
         )
+        event.listen(
+            self.engine,
+            "connect",
+            lambda connection, _: connection.execute("PRAGMA foreign_keys=ON"),
+        )
         Base.metadata.create_all(self.engine)
         session_factory = sessionmaker(bind=self.engine)
+
+        with session_factory() as session:
+            for user_id in ["test-user", "user-a", "user-b"]:
+                session.add(User(
+                    id=user_id,
+                    email=f"{user_id}@example.com",
+                    # Testujemy tokeny, bez logowania hasłem.
+                    password_hash="unused-in-token-tests",
+                ))
+            session.commit()
 
         def override_get_db():
             with session_factory() as session:
@@ -60,8 +86,9 @@ class DailyLogApiTests(unittest.TestCase):
 
     def save(self, payload, user_id="test-user"):
         return self.client.put(
-            f"/users/{user_id}/daily-log",
+            "/me/daily-log",
             json=payload,
+            headers={"Authorization": f"Bearer {create_access_token(user_id)}"},
         )
 
     def row_count(self):
@@ -137,6 +164,46 @@ class DailyLogApiTests(unittest.TestCase):
                 response = self.save({**self.payload, field: value})
                 self.assertEqual(response.status_code, 422)
                 self.assertEqual(self.row_count(), 0)
+
+    def test_missing_token_returns_401_without_saving(self):
+        response = self.client.put("/me/daily-log", json=self.payload)
+
+        self.assertEqual(response.status_code, 401)
+        self.assertEqual(self.row_count(), 0)
+
+    def test_invalid_token_returns_401_without_saving(self):
+        response = self.client.put(
+            "/me/daily-log",
+            json=self.payload,
+            headers={"Authorization": "Bearer invalid-token"},
+        )
+
+        self.assertEqual(response.status_code, 401)
+        self.assertEqual(self.row_count(), 0)
+
+    def test_body_cannot_choose_another_owner(self):
+        first = self.save(self.payload, user_id="user-b")
+        second = self.save(
+            {**self.payload, "user_id": "user-b", "fatigue": 1},
+            user_id="user-a",
+        )
+
+        self.assertEqual(first.status_code, 201)
+        self.assertEqual(second.status_code, 201)
+        self.assertEqual(second.json()["user_id"], "user-a")
+        with Session(self.engine) as session:
+            logs = {row.user_id: row.fatigue for row in session.scalars(select(DailyLog))}
+            self.assertEqual(logs, {"user-a": 1, "user-b": 3})
+
+    def test_legacy_user_route_is_not_available(self):
+        response = self.client.put(
+            "/users/user-b/daily-log",
+            json=self.payload,
+            headers={"Authorization": f"Bearer {create_access_token('user-a')}"},
+        )
+
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(self.row_count(), 0)
 
 
 if __name__ == "__main__":
