@@ -1,5 +1,6 @@
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
+from datetime import date
 
 from src.app.db.models import DailyLog
 from src.app.repositories.daily_log_repository import DailyLogRepository
@@ -35,3 +36,10 @@ class DailyLogService:
         except SQLAlchemyError:
             self.db.rollback()
             raise
+
+    def get_history(self, user_id: str, date_from: date | None = None, date_to: date | None = None) -> list[DailyLog]:
+        return self.repository.get_history(
+            user_id=user_id,
+            date_from=date_from,
+            date_to=date_to,
+        )

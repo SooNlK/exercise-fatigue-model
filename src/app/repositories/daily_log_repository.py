@@ -27,3 +27,16 @@ class DailyLogRepository:
 
     def refresh(self, daily_log: DailyLog) -> None:
         self.db.refresh(daily_log)
+
+    def get_history(self, user_id: str, date_from: date | None = None, date_to: date | None = None) -> list[DailyLog]:
+        statement = select(DailyLog).where(DailyLog.user_id == user_id)
+
+        if date_from is not None:
+            statement = statement.where(DailyLog.date >= date_from)
+
+        if date_to is not None:
+            statement = statement.where(DailyLog.date <= date_to)
+
+        statement = statement.order_by(DailyLog.date.asc())
+
+        return list(self.db.scalars(statement).all())
