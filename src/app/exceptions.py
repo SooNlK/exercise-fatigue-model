@@ -16,3 +16,7 @@ class PredictionError(AppError):
 
 class EmailAlreadyExistsError(AppError):
     """Podany adres e-mail jest już zajęty."""
+
+
+class InvalidCredentialsError(AppError):
+    """Niepoprawne dane logowania."""

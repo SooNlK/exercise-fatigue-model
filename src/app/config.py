@@ -1,5 +1,6 @@
 from pathlib import Path
 
+from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -17,6 +18,9 @@ class Settings(BaseSettings):
         env_file=PROJECT_ROOT / ".env",
         env_file_encoding="utf-8",
     )
+
+    jwt_secret_key: SecretStr = Field(min_length=32)
+    access_token_expire_minutes: int = Field(default=30, gt=0)
 
     @property
     def database_url(self) -> str:
