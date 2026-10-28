@@ -96,3 +96,29 @@ button:focus-visible {
   margin: 4px 0;
   color: #a51b28;
 }
+
+.success {
+  padding: 12px;
+  color: #176035;
+  background: #edf9f0;
+  border: 1px solid #b9dfc5;
+  border-radius: 8px;
+}
+
+.hint {
+  margin: 0;
+  color: #536078;
+  font-size: 14px;
+}
+
+button.secondary {
+  width: 100%;
+  margin-top: 20px;
+  color: #2457d6;
+  background: transparent;
+  border: 1px solid #aebbd0;
+}
+
+button.secondary:hover:not(:disabled) {
+  background: #edf2ff;
+}

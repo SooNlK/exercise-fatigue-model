@@ -74,3 +74,19 @@ export function getCurrentUser(token: string): Promise<User> {
     },
   })
 }
+
+export function register(
+  email: string,
+  password: string,
+): Promise<User> {
+  return request<User>('/auth/register', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      email: email.trim(),
+      password,
+    }),
+  })
+}
