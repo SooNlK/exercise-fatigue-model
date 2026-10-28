@@ -16,3 +16,5 @@ artifacts/soccermon/*
 !artifacts/soccermon/models/
 artifacts/soccermon/models/*
 !artifacts/soccermon/models/*.joblib
+
+frontend/

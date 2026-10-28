@@ -20,7 +20,6 @@ class DailyLogResponse(BaseModel):
     id: int
     user_id: str
     date: date
-
     fatigue: float
 
     readiness: float | None
