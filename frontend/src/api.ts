@@ -4,11 +4,6 @@ export type User = {
   created_at: string
 }
 
-type TokenResponse = {
-  access_token: string
-  token_type: 'bearer'
-}
-
 export class UnauthorizedError extends Error {}
 
 export type DailyLogInput = {
@@ -44,15 +39,26 @@ export type Prediction = {
   target_definition: string
 }
 
-
 async function request<T>(
   path: string,
-  options: RequestInit,
+  options: RequestInit = {},
 ): Promise<T> {
+  const headers = new Headers(options.headers)
+  const method = (options.method ?? 'GET').toUpperCase()
+
+  if (!['GET', 'HEAD', 'OPTIONS'].includes(method)) {
+    headers.set('X-CSRF-Protection', '1')
+  }
+
   let response: Response
 
   try {
-    response = await fetch(`/api${path}`, options)
+    response = await fetch(`/api${path}`, {
+      ...options,
+      headers,
+      credentials: 'same-origin',
+      cache: 'no-store',
+    })
   } catch {
     throw new Error(
       'Nie udało się połączyć z serwerem. Spróbuj ponownie.',
@@ -80,12 +86,11 @@ async function request<T>(
       throw new Error('Sprawdź poprawność wprowadzonych danych.')
     }
 
-    const message =
+    throw new Error(
       typeof body?.detail === 'string'
         ? body.detail
-        : 'Nie udało się wykonać żądania.'
-
-    throw new Error(message)
+        : 'Nie udało się wykonać żądania.',
+    )
   }
 
   if (body === null) {
@@ -98,8 +103,8 @@ async function request<T>(
 export function login(
   email: string,
   password: string,
-): Promise<TokenResponse> {
-  return request<TokenResponse>('/auth/login', {
+): Promise<{ message: string }> {
+  return request('/auth/login', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -111,12 +116,14 @@ export function login(
   })
 }
 
-export function getCurrentUser(token: string): Promise<User> {
-  return request<User>('/me', {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
+export function logout(): Promise<{ message: string }> {
+  return request('/auth/logout', {
+    method: 'POST',
   })
+}
+
+export function getCurrentUser(): Promise<User> {
+  return request<User>('/me')
 }
 
 export function register(
@@ -135,43 +142,7 @@ export function register(
   })
 }
 
-export async function getDailyLog(
-  token: string,
-  date: string,
-): Promise<DailyLog | null> {
-  const params = new URLSearchParams({
-    date_from: date,
-    date_to: date,
-  })
-
-  const logs = await request<DailyLog[]>(
-    `/me/daily-logs?${params.toString()}`,
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    },
-  )
-
-  return logs[0] ?? null
-}
-
-export function saveDailyLog(
-  token: string,
-  entry: DailyLogInput,
-): Promise<DailyLog> {
-  return request<DailyLog>('/me/daily-log', {
-    method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify(entry),
-  })
-}
-
 export function getDailyLogs(
-  token: string,
   filters: {
     dateFrom?: string
     dateTo?: string
@@ -188,17 +159,36 @@ export function getDailyLogs(
   }
 
   const query = params.toString()
-  const path = `/me/daily-logs${query ? `?${query}` : ''}`
 
-  return request<DailyLog[]>(path, {
+  return request<DailyLog[]>(
+    `/me/daily-logs${query ? `?${query}` : ''}`,
+  )
+}
+
+export async function getDailyLog(
+  date: string,
+): Promise<DailyLog | null> {
+  const logs = await getDailyLogs({
+    dateFrom: date,
+    dateTo: date,
+  })
+
+  return logs[0] ?? null
+}
+
+export function saveDailyLog(
+  entry: DailyLogInput,
+): Promise<DailyLog> {
+  return request<DailyLog>('/me/daily-log', {
+    method: 'PUT',
     headers: {
-      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
     },
+    body: JSON.stringify(entry),
   })
 }
 
 export function getPrediction(
-  token: string,
   date: string,
 ): Promise<Prediction> {
   const params = new URLSearchParams({
@@ -207,11 +197,5 @@ export function getPrediction(
 
   return request<Prediction>(
     `/me/predict?${params.toString()}`,
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-      cache: 'no-store',
-    },
   )
 }

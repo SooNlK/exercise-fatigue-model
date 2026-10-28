@@ -4,7 +4,6 @@ import { getPrediction, UnauthorizedError } from './api'
 import type { Prediction } from './api'
 
 type Props = {
-  token: string
   dataVersion: number
   disabled: boolean
   onUnauthorized: () => void
@@ -29,7 +28,6 @@ function displayDate(date: string): string {
 }
 
 export default function PredictionPanel({
-  token,
   dataVersion,
   disabled,
   onUnauthorized,
@@ -51,7 +49,7 @@ export default function PredictionPanel({
     return () => {
       requestId.current += 1
     }
-  }, [token, dataVersion, disabled])
+  }, [dataVersion, disabled])
 
   function changeDate(value: string) {
     requestId.current += 1
@@ -75,7 +73,7 @@ export default function PredictionPanel({
     setResult(null)
 
     try {
-      const prediction = await getPrediction(token, date)
+      const prediction = await getPrediction(date)
 
       if (currentRequest !== requestId.current) return
 

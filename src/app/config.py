@@ -26,4 +26,9 @@ class Settings(BaseSettings):
     def database_url(self) -> str:
         return (f"postgresql+psycopg2://{self.postgres_user}:{self.postgres_password}@{self.postgres_host}:{self.postgres_port}/{self.postgres_db}")
 
+
+    auth_cookie_secure: bool = False
+
+    csrf_trusted_origins: list[str] = Field(default_factory=lambda: ["http://localhost:5173", "http://localhost:8000"])
+
 settings = Settings()

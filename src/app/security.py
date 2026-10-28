@@ -8,6 +8,7 @@ from src.app.config import settings
 
 
 ALGORITHM = "HS256"
+AUTH_COOKIE_NAME = "fatigue_access_token"
 password_hasher = PasswordHash.recommended()
 
 # Umożliwia wykonanie weryfikacji również dla nieistniejącego konta.

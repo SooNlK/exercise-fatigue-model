@@ -4,7 +4,6 @@ import { getDailyLogs, UnauthorizedError } from './api'
 import type { DailyLog } from './api'
 
 type Props = {
-  token: string
   refreshVersion: number
   editingDisabled: boolean
   onEdit: (date: string) => void
@@ -20,7 +19,6 @@ function displayDate(date: string): string {
 }
 
 export default function DailyLogHistory({
-  token,
   refreshVersion,
   editingDisabled,
   onEdit,
@@ -49,7 +47,7 @@ export default function DailyLogHistory({
       setError('')
 
       try {
-        const entries = await getDailyLogs(token, filters)
+        const entries = await getDailyLogs(filters)
 
         if (ignore) return
 
@@ -82,7 +80,7 @@ export default function DailyLogHistory({
     return () => {
       ignore = true
     }
-  }, [token, filters, refreshVersion, retry, onUnauthorized])
+  }, [filters, refreshVersion, retry, onUnauthorized])
 
   function handleFilter(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()

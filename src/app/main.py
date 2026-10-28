@@ -1,9 +1,12 @@
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 
+from src.app.api.dependencies import verify_browser_request
 from src.app.api.routes import daily_logs, predictions, register, login, me
 from src.app.db.database import  Base, engine
 
-app = FastAPI()
+app = FastAPI(
+    dependencies=[Depends(verify_browser_request)],
+)
 
 Base.metadata.create_all(engine)
 

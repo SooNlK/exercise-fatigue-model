@@ -8,7 +8,6 @@ import {
 import type { DailyLogInput } from './api'
 
 type Props = {
-  token: string
   initialDate?: string
   onSaved: () => void
   onSavingChange: (saving: boolean) => void
@@ -118,7 +117,6 @@ function optionalNumber(value: string): number | null {
 }
 
 export default function DailyLogForm({
-  token,
   initialDate,
   onSaved,
   onSavingChange,
@@ -142,7 +140,7 @@ export default function DailyLogForm({
       setMessage('')
 
       try {
-        const entry = await getDailyLog(token, date)
+        const entry = await getDailyLog(date)
 
         // Nie stosujemy odpowiedzi dotyczącej poprzedniej daty.
         if (ignore) return
@@ -183,7 +181,7 @@ export default function DailyLogForm({
     return () => {
       ignore = true
     }
-  }, [token, date, reload, onUnauthorized])
+  }, [date, reload, onUnauthorized])
 
   function changeDate(value: string) {
     setDate(value)
@@ -216,7 +214,7 @@ export default function DailyLogForm({
     }
 
     try {
-      await saveDailyLog(token, entry)
+      await saveDailyLog(entry)
 
       setExisting(true)
       setMessage(`Zapisano raport za dzień ${date}.`)

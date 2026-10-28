@@ -3,7 +3,6 @@ import DailyLogForm from './DailyLogForm'
 import DailyLogHistory from './DailyLogHistory'
 
 type Props = {
-  token: string
   refreshVersion: number
   isSaving: boolean
   onSaved: () => void
@@ -12,7 +11,6 @@ type Props = {
 }
 
 export default function ReportsPanel({
-  token,
   refreshVersion,
   isSaving,
   onSaved,
@@ -41,7 +39,6 @@ export default function ReportsPanel({
     <div className="reports-layout">
       <DailyLogForm
         key={selection.version}
-        token={token}
         initialDate={selection.date}
         onSaved={onSaved}
         onSavingChange={onSavingChange}
@@ -49,7 +46,6 @@ export default function ReportsPanel({
       />
 
       <DailyLogHistory
-        token={token}
         refreshVersion={refreshVersion}
         editingDisabled={isSaving}
         onEdit={handleEdit}

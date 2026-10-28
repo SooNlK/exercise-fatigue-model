@@ -6,7 +6,7 @@ import type { User } from './api'
 
 type Props = {
   mode: 'login' | 'register'
-  onLogin: (token: string, user: User) => void
+  onLogin: (user: User) => void
 }
 
 type NavigationState = {
@@ -73,15 +73,15 @@ export default function AuthPage({ mode, onLogin }: Props) {
           },
         })
       } else {
-        const tokenResponse = await login(email, password)
+        await login(email, password)
 
         if (!active.current) return
 
-        const user = await getCurrentUser(tokenResponse.access_token)
+        const user = await getCurrentUser()
 
         if (!active.current) return
 
-        onLogin(tokenResponse.access_token, user)
+        onLogin(user)
         navigate('/reports', { replace: true })
       }
     } catch (error) {
