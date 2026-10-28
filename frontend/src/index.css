@@ -262,3 +262,48 @@ td button {
   border-radius: 8px;
   color: #70520b;
 }
+
+.main-nav {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.main-nav a {
+  padding: 10px 16px;
+  color: #2457d6;
+  text-decoration: none;
+  border: 1px solid #c5d5f5;
+  border-radius: 8px;
+}
+
+.main-nav a.active {
+  color: white;
+  background: #2457d6;
+  border-color: #2457d6;
+}
+
+.main-nav a[aria-disabled="true"],
+.auth-switch[aria-disabled="true"] {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.main-nav button {
+  margin: 0 0 0 auto;
+}
+
+.auth-switch {
+  display: block;
+  margin-top: 24px;
+  color: #2457d6;
+  text-align: center;
+}
+
+.main-nav a:focus-visible,
+.auth-switch:focus-visible {
+  outline: 3px solid #91b4ff;
+  outline-offset: 3px;
+}

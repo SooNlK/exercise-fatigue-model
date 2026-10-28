@@ -1,230 +1,169 @@
 import { useCallback, useState } from 'react'
-import type { FormEvent } from 'react'
-import { getCurrentUser, login, register } from './api'
+import {
+  Navigate,
+  NavLink,
+  Outlet,
+  Route,
+  Routes,
+} from 'react-router'
 import type { User } from './api'
+import AuthPage from './AuthPage'
 import ReportsPanel from './ReportsPanel'
+import PredictionPanel from './PredictionPanel'
 
 type Session = {
   token: string
   user: User
 }
 
-type Mode = 'login' | 'register'
-
-function App() {
-  const [mode, setMode] = useState<Mode>('login')
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [confirmPassword, setConfirmPassword] = useState('')
+export default function App() {
   const [session, setSession] = useState<Session | null>(null)
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState('')
-  const [message, setMessage] = useState('')
+  const [dataVersion, setDataVersion] = useState(0)
+  const [isSaving, setIsSaving] = useState(false)
 
-  const isRegister = mode === 'register'
-
-  function changeMode() {
-    setMode(isRegister ? 'login' : 'register')
-    setPassword('')
-    setConfirmPassword('')
-    setError('')
-    setMessage('')
-  }
-
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-
-    if (isLoading) return
-
-    setError('')
-    setMessage('')
-
-    // Powtórzenie hasła sprawdzamy tylko podczas rejestracji.
-    if (isRegister) {
-      if (password.length < 8) {
-        setError('Hasło musi mieć co najmniej 8 znaków.')
-        return
-      }
-
-      if (password !== confirmPassword) {
-        setError('Podane hasła muszą być takie same.')
-        return
-      }
-    }
-
-    setIsLoading(true)
-
-    try {
-      if (isRegister) {
-        const user = await register(email, password)
-
-        // Po utworzeniu konta wracamy do logowania.
-        setMode('login')
-        setEmail(user.email)
-        setPassword('')
-        setConfirmPassword('')
-        setMessage('Konto zostało utworzone. Możesz się zalogować.')
-      } else {
-        const tokenResponse = await login(email, password)
-        const user = await getCurrentUser(tokenResponse.access_token)
-
-        setSession({
-          token: tokenResponse.access_token,
-          user,
-        })
-
-        setPassword('')
-        setConfirmPassword('')
-      }
-    } catch (error) {
-      setError(
-        error instanceof Error
-          ? error.message
-          : 'Wystąpił nieoczekiwany błąd.',
-      )
-    } finally {
-      setIsLoading(false)
-    }
-  }
+  const handleLogin = useCallback((token: string, user: User) => {
+    setSession({ token, user })
+    setDataVersion(0)
+    setIsSaving(false)
+  }, [])
 
   const handleLogout = useCallback(() => {
     setSession(null)
-    setMode('login')
-    setEmail('')
-    setPassword('')
-    setConfirmPassword('')
-    setError('')
-    setMessage('')
+    setDataVersion(0)
+    setIsSaving(false)
   }, [])
 
-  if (session) {
-    return (
-      <main className="page">
-        <section className="card dashboard-card" aria-labelledby="account-title">
-          <h1 id="account-title">Twoje konto</h1>
+  const handleSaved = useCallback(() => {
+    setDataVersion((value) => value + 1)
+  }, [])
 
-          <p>
-            Zalogowano jako <strong>{session.user.email}</strong>
-          </p>
-
-          <button type="button" onClick={handleLogout}>
-            Wyloguj
-          </button>
-
-          <ReportsPanel
-              token={session.token}
-              onUnauthorized={handleLogout}
-          />
-        </section>
-      </main>
-    )
-  }
+  const home = session ? '/reports' : '/login'
 
   return (
-      <main className="page">
-        <section className="card" aria-labelledby="auth-title">
-        <h1 id="auth-title">
-          {isRegister ? 'Utwórz konto' : 'Zaloguj się'}
-        </h1>
+    <Routes>
+      <Route
+        path="/"
+        element={<Navigate to={home} replace />}
+      />
 
-        <p>
-          {isRegister
-            ? 'Załóż konto, aby zapisywać raporty i sprawdzać prognozy.'
-            : 'Uzyskaj dostęp do swoich raportów i prognoz.'}
-        </p>
-
-        {message && (
-          <p className="success" role="status">
-            {message}
-          </p>
-        )}
-
-        <form onSubmit={handleSubmit} aria-busy={isLoading}>
-          <fieldset disabled={isLoading}>
-            <label htmlFor="email">Adres e-mail</label>
-            <input
-              id="email"
-              name="email"
-              type="email"
-              autoComplete={isRegister ? 'email' : 'username'}
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              maxLength={254}
-              required
+      <Route
+        path="/login"
+        element={
+          session ? (
+            <Navigate to="/reports" replace />
+          ) : (
+            <AuthPage
+              key="login"
+              mode="login"
+              onLogin={handleLogin}
             />
+          )
+        }
+      />
 
-            <label htmlFor="password">Hasło</label>
-            <input
-              id="password"
-              name="password"
-              type="password"
-              autoComplete={
-                isRegister ? 'new-password' : 'current-password'
-              }
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              minLength={isRegister ? 8 : undefined}
-              maxLength={128}
-              aria-describedby={isRegister ? 'password-hint' : undefined}
-              required
+      <Route
+        path="/register"
+        element={
+          session ? (
+            <Navigate to="/reports" replace />
+          ) : (
+            <AuthPage
+              key="register"
+              mode="register"
+              onLogin={handleLogin}
             />
+          )
+        }
+      />
 
-            {isRegister && (
-              <>
-                <p id="password-hint" className="hint">
-                  Hasło musi mieć od 8 do 128 znaków.
+      <Route
+        element={
+          session ? (
+            <main className="page">
+              <section
+                className="card dashboard-card"
+                aria-labelledby="account-title"
+              >
+                <h1 id="account-title">Twoje konto</h1>
+
+                <p>
+                  Zalogowano jako{' '}
+                  <strong>{session.user.email}</strong>
                 </p>
 
-                <label htmlFor="confirm-password">
-                  Powtórz hasło
-                </label>
-                <input
-                  id="confirm-password"
-                  name="confirm-password"
-                  type="password"
-                  autoComplete="new-password"
-                  value={confirmPassword}
-                  onChange={(event) =>
-                    setConfirmPassword(event.target.value)
-                  }
-                  minLength={8}
-                  maxLength={128}
-                  required
-                />
-              </>
-            )}
+                <nav className="main-nav" aria-label="Menu główne">
+                  <NavLink
+                    to="/reports"
+                    aria-disabled={isSaving}
+                    onClick={(event) => {
+                      if (isSaving) event.preventDefault()
+                    }}
+                  >
+                    Raporty
+                  </NavLink>
 
-            {error && (
-              <p className="error" role="alert">
-                {error}
-              </p>
-            )}
+                  <NavLink
+                    to="/prediction"
+                    aria-disabled={isSaving}
+                    onClick={(event) => {
+                      if (isSaving) event.preventDefault()
+                    }}
+                  >
+                    Prognoza
+                  </NavLink>
 
-            <button type="submit">
-              {isLoading
-                ? isRegister
-                  ? 'Tworzenie konta…'
-                  : 'Logowanie…'
-                : isRegister
-                  ? 'Utwórz konto'
-                  : 'Zaloguj'}
-            </button>
-          </fieldset>
-        </form>
+                  <button
+                    type="button"
+                    onClick={handleLogout}
+                    disabled={isSaving}
+                  >
+                    Wyloguj
+                  </button>
+                </nav>
 
-        <button
-          className="secondary"
-          type="button"
-          onClick={changeMode}
-          disabled={isLoading}
-        >
-          {isRegister
-            ? 'Masz już konto? Zaloguj się'
-            : 'Nie masz konta? Zarejestruj się'}
-        </button>
-      </section>
-    </main>
+                <Outlet />
+              </section>
+            </main>
+          ) : (
+            <Navigate to="/login" replace />
+          )
+        }
+      >
+        <Route
+          path="/reports"
+          element={
+            session && (
+              <ReportsPanel
+                token={session.token}
+                refreshVersion={dataVersion}
+                isSaving={isSaving}
+                onSaved={handleSaved}
+                onSavingChange={setIsSaving}
+                onUnauthorized={handleLogout}
+              />
+            )
+          }
+        />
+
+        <Route
+          path="/prediction"
+          element={
+            session && (
+              <PredictionPanel
+                token={session.token}
+                dataVersion={dataVersion}
+                disabled={isSaving}
+                onUnauthorized={handleLogout}
+              />
+            )
+          }
+        />
+      </Route>
+
+      <Route
+        path="*"
+        element={<Navigate to={home} replace />}
+      />
+    </Routes>
   )
 }
-
-export default App

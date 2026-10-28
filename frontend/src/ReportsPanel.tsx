@@ -1,29 +1,28 @@
-import { useCallback, useState } from 'react'
+import { useState } from 'react'
 import DailyLogForm from './DailyLogForm'
 import DailyLogHistory from './DailyLogHistory'
-import PredictionPanel from './PredictionPanel'
 
 type Props = {
   token: string
+  refreshVersion: number
+  isSaving: boolean
+  onSaved: () => void
+  onSavingChange: (saving: boolean) => void
   onUnauthorized: () => void
 }
 
 export default function ReportsPanel({
   token,
+  refreshVersion,
+  isSaving,
+  onSaved,
+  onSavingChange,
   onUnauthorized,
 }: Props) {
-  const [refreshVersion, setRefreshVersion] = useState(0)
-  const [isSaving, setIsSaving] = useState(false)
-
   const [selection, setSelection] = useState({
     date: '',
     version: 0,
   })
-
-  const handleSaved = useCallback(() => {
-    // Odświeżamy historię i unieważniamy poprzednią prognozę.
-    setRefreshVersion((value) => value + 1)
-  }, [])
 
   function handleEdit(date: string) {
     if (isSaving) return
@@ -39,32 +38,23 @@ export default function ReportsPanel({
   }
 
   return (
-    <>
-      <div className="reports-layout">
-        <DailyLogForm
-          key={selection.version}
-          token={token}
-          initialDate={selection.date}
-          onSaved={handleSaved}
-          onSavingChange={setIsSaving}
-          onUnauthorized={onUnauthorized}
-        />
-
-        <DailyLogHistory
-          token={token}
-          refreshVersion={refreshVersion}
-          editingDisabled={isSaving}
-          onEdit={handleEdit}
-          onUnauthorized={onUnauthorized}
-        />
-      </div>
-
-      <PredictionPanel
+    <div className="reports-layout">
+      <DailyLogForm
+        key={selection.version}
         token={token}
-        dataVersion={refreshVersion}
-        disabled={isSaving}
+        initialDate={selection.date}
+        onSaved={onSaved}
+        onSavingChange={onSavingChange}
         onUnauthorized={onUnauthorized}
       />
-    </>
+
+      <DailyLogHistory
+        token={token}
+        refreshVersion={refreshVersion}
+        editingDisabled={isSaving}
+        onEdit={handleEdit}
+        onUnauthorized={onUnauthorized}
+      />
+    </div>
   )
 }
