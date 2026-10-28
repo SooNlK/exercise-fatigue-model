@@ -153,3 +153,30 @@ export function saveDailyLog(
     body: JSON.stringify(entry),
   })
 }
+
+export function getDailyLogs(
+  token: string,
+  filters: {
+    dateFrom?: string
+    dateTo?: string
+  } = {},
+): Promise<DailyLog[]> {
+  const params = new URLSearchParams()
+
+  if (filters.dateFrom) {
+    params.set('date_from', filters.dateFrom)
+  }
+
+  if (filters.dateTo) {
+    params.set('date_to', filters.dateTo)
+  }
+
+  const query = params.toString()
+  const path = `/me/daily-logs${query ? `?${query}` : ''}`
+
+  return request<DailyLog[]>(path, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  })
+}

@@ -2,7 +2,7 @@ import { useCallback, useState } from 'react'
 import type { FormEvent } from 'react'
 import { getCurrentUser, login, register } from './api'
 import type { User } from './api'
-import DailyLogForm from './DailyLogForm.tsx'
+import ReportsPanel from './ReportsPanel'
 
 type Session = {
   token: string
@@ -100,7 +100,7 @@ function App() {
   if (session) {
     return (
       <main className="page">
-        <section className="card" aria-labelledby="account-title">
+        <section className="card dashboard-card" aria-labelledby="account-title">
           <h1 id="account-title">Twoje konto</h1>
 
           <p>
@@ -111,9 +111,9 @@ function App() {
             Wyloguj
           </button>
 
-          <DailyLogForm
-            token={session.token}
-            onUnauthorized={handleLogout}
+          <ReportsPanel
+              token={session.token}
+              onUnauthorized={handleLogout}
           />
         </section>
       </main>
@@ -121,8 +121,8 @@ function App() {
   }
 
   return (
-    <main className="page">
-      <section className="card" aria-labelledby="auth-title">
+      <main className="page">
+        <section className="card" aria-labelledby="auth-title">
         <h1 id="auth-title">
           {isRegister ? 'Utwórz konto' : 'Zaloguj się'}
         </h1>

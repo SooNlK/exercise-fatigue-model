@@ -9,6 +9,9 @@ import type { DailyLogInput } from './api'
 
 type Props = {
   token: string
+  initialDate?: string
+  onSaved: () => void
+  onSavingChange: (saving: boolean) => void
   onUnauthorized: () => void
 }
 
@@ -116,9 +119,12 @@ function optionalNumber(value: string): number | null {
 
 export default function DailyLogForm({
   token,
+  initialDate,
+  onSaved,
+  onSavingChange,
   onUnauthorized,
 }: Props) {
-  const [date, setDate] = useState(localToday)
+  const [date, setDate] = useState(() => initialDate || localToday())
   const [values, setValues] = useState<Values>(emptyValues)
   const [loaded, setLoaded] = useState(false)
   const [existing, setExisting] = useState(false)
@@ -194,7 +200,7 @@ export default function DailyLogForm({
 
     setError('')
     setMessage('')
-    setIsSaving(true)
+    onSavingChange(true)
 
     const entry: DailyLogInput = {
       date,
@@ -213,6 +219,7 @@ export default function DailyLogForm({
 
       setExisting(true)
       setMessage(`Zapisano raport za dzień ${date}.`)
+      onSaved()
     } catch (error) {
       if (error instanceof UnauthorizedError) {
         onUnauthorized()
@@ -226,6 +233,7 @@ export default function DailyLogForm({
       )
     } finally {
       setIsSaving(false)
+      onSavingChange(false)
     }
   }
 

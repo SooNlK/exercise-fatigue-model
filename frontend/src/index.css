@@ -142,3 +142,72 @@ button.secondary:hover:not(:disabled) {
 .daily-log h2 {
   margin: 0 0 12px;
 }
+
+.dashboard-card {
+  max-width: 1100px;
+  min-width: 0;
+}
+
+.reports-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 360px) minmax(0, 1fr);
+  gap: 32px;
+}
+
+.history {
+  min-width: 0;
+  margin-top: 32px;
+  padding-top: 24px;
+  border-top: 1px solid #dce3ed;
+}
+
+.history h2 {
+  margin: 0 0 20px;
+}
+
+.date-range {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.table-scroll {
+  margin-top: 24px;
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+caption {
+  margin-bottom: 12px;
+  text-align: left;
+  line-height: 1.5;
+  color: #536078;
+}
+
+th,
+td {
+  padding: 12px 8px;
+  border-bottom: 1px solid #dce3ed;
+  text-align: left;
+  white-space: nowrap;
+}
+
+thead {
+  background: #f2f5f9;
+}
+
+td button {
+  margin: 0;
+  padding: 8px 12px;
+}
+
+@media (max-width: 850px) {
+  .reports-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
