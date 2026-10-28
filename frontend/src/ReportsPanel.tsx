@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react'
 import DailyLogForm from './DailyLogForm'
 import DailyLogHistory from './DailyLogHistory'
+import PredictionPanel from './PredictionPanel'
 
 type Props = {
   token: string
@@ -20,6 +21,7 @@ export default function ReportsPanel({
   })
 
   const handleSaved = useCallback(() => {
+    // Odświeżamy historię i unieważniamy poprzednią prognozę.
     setRefreshVersion((value) => value + 1)
   }, [])
 
@@ -37,23 +39,32 @@ export default function ReportsPanel({
   }
 
   return (
-    <div className="reports-layout">
-      <DailyLogForm
-        key={selection.version}
-        token={token}
-        initialDate={selection.date}
-        onSaved={handleSaved}
-        onSavingChange={setIsSaving}
-        onUnauthorized={onUnauthorized}
-      />
+    <>
+      <div className="reports-layout">
+        <DailyLogForm
+          key={selection.version}
+          token={token}
+          initialDate={selection.date}
+          onSaved={handleSaved}
+          onSavingChange={setIsSaving}
+          onUnauthorized={onUnauthorized}
+        />
 
-      <DailyLogHistory
+        <DailyLogHistory
+          token={token}
+          refreshVersion={refreshVersion}
+          editingDisabled={isSaving}
+          onEdit={handleEdit}
+          onUnauthorized={onUnauthorized}
+        />
+      </div>
+
+      <PredictionPanel
         token={token}
-        refreshVersion={refreshVersion}
-        editingDisabled={isSaving}
-        onEdit={handleEdit}
+        dataVersion={refreshVersion}
+        disabled={isSaving}
         onUnauthorized={onUnauthorized}
       />
-    </div>
+    </>
   )
 }

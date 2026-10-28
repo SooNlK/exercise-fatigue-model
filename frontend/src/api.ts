@@ -28,6 +28,22 @@ export type DailyLog = DailyLogInput & {
   user_id: string
 }
 
+export type Prediction = {
+  user_id: string
+  prediction_date: string
+  target_date: string
+  current_fatigue: number
+  deterioration_probability: number
+  model_id: string
+  method: string
+  probability_source: string
+  training_rows_for_person: number
+  known_person_with_20_training_pairs: boolean
+  intense_day: boolean
+  intensity_status: string
+  target_definition: string
+}
+
 
 async function request<T>(
   path: string,
@@ -179,4 +195,23 @@ export function getDailyLogs(
       Authorization: `Bearer ${token}`,
     },
   })
+}
+
+export function getPrediction(
+  token: string,
+  date: string,
+): Promise<Prediction> {
+  const params = new URLSearchParams({
+    prediction_date: date,
+  })
+
+  return request<Prediction>(
+    `/me/predict?${params.toString()}`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      cache: 'no-store',
+    },
+  )
 }

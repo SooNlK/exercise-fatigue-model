@@ -211,3 +211,54 @@ td button {
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+.prediction-panel {
+  margin-top: 32px;
+  padding-top: 24px;
+  border-top: 1px solid #dce3ed;
+}
+
+.prediction-panel h2 {
+  margin: 0 0 12px;
+}
+
+.prediction-panel form {
+  max-width: 440px;
+  margin-bottom: 16px;
+}
+
+.prediction-result {
+  margin-top: 24px;
+  padding: 24px;
+  background: #f0f5ff;
+  border: 1px solid #c5d5f5;
+  border-radius: 12px;
+}
+
+.prediction-result h3 {
+  margin-top: 0;
+}
+
+.prediction-value {
+  margin: 12px 0;
+  font-size: 44px;
+  font-weight: 700;
+  color: #2457d6;
+}
+
+.prediction-result dt {
+  margin-top: 16px;
+  font-weight: 600;
+}
+
+.prediction-result dd {
+  margin: 4px 0 0;
+}
+
+.notice {
+  padding: 12px;
+  background: #fff7df;
+  border: 1px solid #e8d294;
+  border-radius: 8px;
+  color: #70520b;
+}
