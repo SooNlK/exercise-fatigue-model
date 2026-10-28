@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import type { FormEvent } from 'react'
 import { getCurrentUser, login, register } from './api'
 import type { User } from './api'
+import DailyLogForm from './DailyLogForm.tsx'
 
 type Session = {
   token: string
@@ -86,7 +87,7 @@ function App() {
     }
   }
 
-  function handleLogout() {
+  const handleLogout = useCallback(() => {
     setSession(null)
     setMode('login')
     setEmail('')
@@ -94,7 +95,7 @@ function App() {
     setConfirmPassword('')
     setError('')
     setMessage('')
-  }
+  }, [])
 
   if (session) {
     return (
@@ -109,6 +110,11 @@ function App() {
           <button type="button" onClick={handleLogout}>
             Wyloguj
           </button>
+
+          <DailyLogForm
+            token={session.token}
+            onUnauthorized={handleLogout}
+          />
         </section>
       </main>
     )

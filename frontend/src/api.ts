@@ -9,6 +9,26 @@ type TokenResponse = {
   token_type: 'bearer'
 }
 
+export class UnauthorizedError extends Error {}
+
+export type DailyLogInput = {
+  date: string
+  fatigue: number
+  soreness: number | null
+  readiness: number | null
+  sleep_duration: number | null
+  sleep_quality: number | null
+  mood: number | null
+  stress: number | null
+  daily_srpe: number | null
+}
+
+export type DailyLog = DailyLogInput & {
+  id: number
+  user_id: string
+}
+
+
 async function request<T>(
   path: string,
   options: RequestInit,
@@ -26,6 +46,14 @@ async function request<T>(
   const body = await response.json().catch(() => null)
 
   if (!response.ok) {
+    if (response.status === 401) {
+      throw new UnauthorizedError(
+        typeof body?.detail === 'string'
+          ? body.detail
+          : 'Zaloguj się ponownie.',
+      )
+    }
+
     if (response.status >= 500) {
       throw new Error(
         'Serwer jest chwilowo niedostępny. Spróbuj ponownie.',
@@ -88,5 +116,40 @@ export function register(
       email: email.trim(),
       password,
     }),
+  })
+}
+
+export async function getDailyLog(
+  token: string,
+  date: string,
+): Promise<DailyLog | null> {
+  const params = new URLSearchParams({
+    date_from: date,
+    date_to: date,
+  })
+
+  const logs = await request<DailyLog[]>(
+    `/me/daily-logs?${params.toString()}`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    },
+  )
+
+  return logs[0] ?? null
+}
+
+export function saveDailyLog(
+  token: string,
+  entry: DailyLogInput,
+): Promise<DailyLog> {
+  return request<DailyLog>('/me/daily-log', {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(entry),
   })
 }
