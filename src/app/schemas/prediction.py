@@ -2,6 +2,14 @@ from datetime import date
 from pydantic import BaseModel, Field
 
 
+class RecoveryPrediction(BaseModel):
+    event_date: date
+    status: str
+    message: str
+    baseline_fatigue: float | None = Field(default=None, ge=1, le=5)
+    recovery_probability: float | None = Field(default=None, ge=0, le=1)
+
+
 class PredictionResponse(BaseModel):
     user_id: str
     prediction_date: date
@@ -20,3 +28,4 @@ class PredictionResponse(BaseModel):
     intense_day: bool
     intensity_status: str
     target_definition: str
+    recovery: RecoveryPrediction | None = None

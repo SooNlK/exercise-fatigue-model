@@ -38,6 +38,7 @@ def predict(
     service = PredictionService(
         repository=repository,
         artifact=ARTIFACT,
+        recovery_model_path=settings.recovery_model_path,
     )
 
     try:

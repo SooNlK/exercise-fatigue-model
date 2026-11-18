@@ -23,6 +23,14 @@ export type DailyLog = DailyLogInput & {
   user_id: string
 }
 
+export type RecoveryPrediction = {
+  event_date: string
+  status: string
+  message: string
+  baseline_fatigue: number | null
+  recovery_probability: number | null
+}
+
 export type Prediction = {
   user_id: string
   prediction_date: string
@@ -37,6 +45,7 @@ export type Prediction = {
   intense_day: boolean
   intensity_status: string
   target_definition: string
+  recovery?: RecoveryPrediction | null
 }
 
 async function request<T>(

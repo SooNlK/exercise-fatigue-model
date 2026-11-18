@@ -109,6 +109,8 @@ export default function PredictionPanel({
       ? result.prediction
       : null
 
+  const recovery = prediction?.recovery
+
   const percentage = prediction
     ? new Intl.NumberFormat('pl-PL', {
         style: 'percent',
@@ -127,6 +129,7 @@ export default function PredictionPanel({
       <p>
         Wybierz dzień, dla którego masz zapisany raport.
         Prognoza będzie dotyczyć dnia następnego.
+        Aby ocenić regenerację, wybierz pierwszy dzień po intensywnym wysiłku.
       </p>
 
       <form onSubmit={handlePredict} aria-busy={isLoading}>
@@ -221,6 +224,31 @@ export default function PredictionPanel({
               niemożliwy, dlatego prawdopodobieństwo tego
               zdarzenia wynosi 0%.
             </p>
+          )}
+          {recovery && (
+            <section aria-label="Prognoza regeneracji">
+              <h4>Powrót do poziomu zmęczenia sprzed wysiłku</h4>
+              <p>{recovery.message}</p>
+
+              {recovery.baseline_fatigue !== null && (
+                <p>
+                  Intensywny dzień {displayDate(recovery.event_date)}.
+                  {' '}Średnia ocena sprzed wysiłku{' '}
+                  {recovery.baseline_fatigue.toLocaleString('pl-PL', {
+                    maximumFractionDigits: 2,
+                  })} / 5.
+                </p>
+              )}
+
+              {recovery.recovery_probability !== null && (
+                <p className="prediction-value">
+                  {new Intl.NumberFormat('pl-PL', {
+                    style: 'percent',
+                    maximumFractionDigits: 1,
+                  }).format(recovery.recovery_probability)}
+                </p>
+              )}
+            </section>
           )}
         </div>
       )}

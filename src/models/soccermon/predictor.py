@@ -17,7 +17,7 @@ import joblib
 import numpy as np
 import pandas as pd
 
-from src.data.soccermon.preparation import WELLNESS, make_features
+from src.experiments.preparation import WELLNESS, make_features
 from src.models.soccermon.risk import PIPELINE_VERSION, TARGET_DEFINITION, risk_probabilities
 
 

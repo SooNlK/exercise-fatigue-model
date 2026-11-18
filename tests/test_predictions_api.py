@@ -12,7 +12,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 from sqlalchemy.pool import StaticPool
 
-from src.data.soccermon.preparation import make_features
+from src.experiments.preparation import make_features
 from src.models.soccermon.risk import (
     PIPELINE_VERSION,
     TARGET_DEFINITION,
@@ -153,6 +153,37 @@ class PredictionApiTests(unittest.TestCase):
             params={"prediction_date": "2026-10-25"},
             headers=self.headers,
         )
+
+    def test_available_recovery(self):
+        history = self.history.copy()
+        history.loc[history.index[-2], "daily_srpe"] = 800
+        history.loc[history.index[-1], "fatigue"] = 2
+        self.repository.get_by_user.return_value = history
+        response = self.get_prediction()
+        self.assertEqual(response.status_code, 200)
+        result = response.json()["recovery"]
+        self.assertEqual(result["status"], "available")
+        self.assertEqual(result["event_date"], "2026-10-24")
+        self.assertEqual(result["baseline_fatigue"], 3)
+        self.assertGreaterEqual(result["recovery_probability"], 0)
+        self.assertLessEqual(result["recovery_probability"], 1)
+
+    def test_recovery_already_at_baseline(self):
+        history = self.history.copy()
+        history.loc[history.index[-2], "daily_srpe"] = 800
+        self.repository.get_by_user.return_value = history
+        response = self.get_prediction()
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["recovery"]["status"], "already_at_baseline")
+        self.assertIsNone(response.json()["recovery"]["recovery_probability"])
+
+    def test_recovery_missing_load(self):
+        history = self.history.copy()
+        history.loc[history.index[-2], "daily_srpe"] = np.nan
+        self.repository.get_by_user.return_value = history
+        response = self.get_prediction()
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["recovery"]["status"], "insufficient_data")
 
     def test_correct_prediction(self):
         response = self.get_prediction()

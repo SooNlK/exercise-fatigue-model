@@ -14,6 +14,8 @@ class Settings(BaseSettings):
 
     model_path: str = str(PROJECT_ROOT / "artifacts" / "soccermon" / "models" / "boosting_risk.joblib")
 
+    recovery_model_path: str = str(PROJECT_ROOT / "artifacts" / "soccermon" / "recovery" / "logistic_recovery.joblib")
+
     model_config = SettingsConfigDict(
         env_file=PROJECT_ROOT / ".env",
         env_file_encoding="utf-8",

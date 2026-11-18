@@ -16,5 +16,8 @@ artifacts/soccermon/*
 !artifacts/soccermon/models/
 artifacts/soccermon/models/*
 !artifacts/soccermon/models/*.joblib
+!artifacts/soccermon/recovery/
+artifacts/soccermon/recovery/*
+!artifacts/soccermon/recovery/logistic_recovery.joblib
 
 frontend/

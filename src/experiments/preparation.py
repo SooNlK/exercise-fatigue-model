@@ -132,6 +132,43 @@ def make_features(daily: pd.DataFrame) -> tuple[pd.DataFrame, dict[str, list[str
     sets = {"today_only": ["fatigue"], "wellness": wellness_features, "wellness_load": wellness_features + load_features}
     return daily, sets
 
+def make_recovery_dataset(featured: pd.DataFrame) -> pd.DataFrame:
+    """Buduje zbiór prognoz powrotu do poziomu sprzed intensywnego dnia."""
+    groups = featured.groupby("participant", sort=False)
+
+    # Wiersz reprezentuje dzień prognozy, np. wtorek po poniedziałkowym wysiłku.
+    previous_intense = groups["intense_day"].shift(1).eq(True)
+
+    # Dla wtorku potrzebujemy ocen z piątku, soboty i niedzieli.
+    baseline = groups["fatigue"].transform(
+        lambda s: s.shift(2).rolling(3, min_periods=2).mean()
+    )
+
+    # Kolumna target z make_features zawiera ocenę z kolejnego dnia.
+    eligible = (
+        previous_intense
+        & featured["fatigue"].lt(baseline)
+        & featured["target"].notna()
+    )
+
+    columns = [
+        "participant", "date", "target_date", "fatigue", "daily_srpe_lag1",
+        "daily_srpe", "soreness", "sleep_duration", "target",
+    ]
+    rows = featured.loc[eligible, columns].rename(columns={
+        "date": "prediction_date",
+        "daily_srpe_lag1": "event_srpe",
+        "target": "observed_fatigue_day2",
+    }).copy()
+
+    rows["event_date"] = rows["prediction_date"] - pd.Timedelta(days=1)
+    rows["baseline_fatigue"] = baseline.loc[eligible]
+    rows["fatigue_gap"] = rows["baseline_fatigue"] - rows["fatigue"]
+    rows["recovered_day2"] = (
+        rows["observed_fatigue_day2"] >= rows["baseline_fatigue"]
+    ).astype(int)
+
+    return rows
 
 def prepare(root: Path, output: Path) -> dict:
     """Przygotowuje zbiór i zapisuje kalendarz oraz audyt źródeł."""
@@ -150,6 +187,12 @@ def prepare(root: Path, output: Path) -> dict:
     output.mkdir(parents=True, exist_ok=True)
     daily.to_csv(output / "daily_calendar.csv", index=False)
     dataset.to_csv(output / "dataset.csv", index=False)
+    recovery = make_recovery_dataset(featured)
+    recovery.to_csv(output / "recovery_dataset.csv", index=False)
+
+    print(f"Epizody regeneracji: {len(recovery)}")
+    print(f"Liczba osób: {recovery['participant'].nunique()}")
+    print(recovery["recovered_day2"].value_counts().sort_index())
     (output / "audit.json").write_text(json.dumps(audit, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     print_summary("SoccerMon", len(dataset), dataset.participant.nunique(), {
         "Zbiór modelowy": output / "dataset.csv", "Kalendarz dzienny": output / "daily_calendar.csv",

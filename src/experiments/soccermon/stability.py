@@ -25,7 +25,7 @@ from sklearn.model_selection import GroupKFold
 
 from src.data.common import PolishArgumentParser
 from src.experiments.common import print_outputs, SOCCERMON_ARTIFACTS, print_table, VALUES
-from src.data.soccermon.preparation import load_daily, make_features
+from src.experiments.preparation import load_daily, make_features
 from src.experiments.soccermon.compare import metrics, models
 
 

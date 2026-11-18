@@ -11,6 +11,7 @@ RUN pip install --no-cache-dir -r requirements/api.txt
 
 COPY src/ src/
 COPY artifacts/soccermon/models/ artifacts/soccermon/models/
+COPY artifacts/soccermon/recovery/logistic_recovery.joblib artifacts/soccermon/recovery/logistic_recovery.joblib
 
 EXPOSE 8000
 

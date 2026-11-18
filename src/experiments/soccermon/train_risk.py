@@ -24,7 +24,7 @@ import pandas as pd
 import sklearn
 
 from src.data.common import PROJECT_ROOT, SOCCERMON_DIR, PolishArgumentParser
-from src.data.soccermon.preparation import WELLNESS, make_features
+from src.experiments.preparation import WELLNESS, make_features
 from src.experiments.common import SOCCERMON_ARTIFACTS, print_outputs
 from src.models.soccermon.predictor import daily_date, load_risk_model
 from src.models.soccermon.risk import (
